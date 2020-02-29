@@ -234,7 +234,44 @@ module.exports = {
     pet_data: {
         "BAT": {
             head: "/head/382fc3f71b41769376a9e92fe3adbaac3772b999b219c9d6b4680ba9983e527",
-            type: "mining"
+            type: "mining",
+            foundIn: "Mushroom IX",
+            stats: {
+                "BASE": {
+                    "intelligence": 1,
+                    "speed": 0.05
+                },
+                "COMMON": { "perks": 1 },
+                "UNCOMMON": { "perks": 1 },
+                "RARE": { "perks": 2 },
+                "EPIC": { "perks": 2 },
+                "LEGENDARY": { "perks": 3 }
+            },
+            perks: [
+                {
+                    name: "Candy Lover",
+                    desc: "Increases the chance for mobs\nto drop Candy by %stat%\%",
+                    stats: {
+                        "BASE": [0.1],
+                        "EPIC": [0.1],
+                        "LEGENDARY": [0.1],
+                    }
+                },
+                {
+                    name: "Nightmare",
+                    desc: "During night, gain %stat%\n✎ Intelligence, %stat% ✦\nSpeed, and night vision",
+                    stats: {
+                        "BASE": [0.3, 0.5]
+                    }
+                },
+                {
+                    name: "Fast Hooks",
+                    desc: "Decreases the cooldown of your\ngrappling hook by %stat%\%",
+                    stats: {
+                        "BASE": [0.75]
+                    }
+                }
+            ]
         },
         "BLAZE": {
             head: "/head/b78ef2e4cf2c41a2d14bfde9caff10219f5b1bf5b35a49eb51c6467882cb5f0",
