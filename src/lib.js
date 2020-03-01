@@ -123,6 +123,91 @@ function getPetLevel(pet){
     };
 }
 
+
+function getPetLore(pet) {
+    let lore = [];
+
+    if (!constants.pet_data[pet.type]) return lore;
+    const petData = constants.pet_data[pet.type];
+
+    if (!petData.stats && !petData.perks) {
+        lore.push("", "§7Stats and Perks","§7not found.");
+        return lore;
+    }
+
+    if (!petData.stats) {
+        lore.push("", "§7Stats not found.");
+    } else { 
+        lore.push("");
+        let base_stats = petData.stats.base; // Base Stats that is multiplied by level
+        let stat_types = ["intelligence", "speed"]; // List of Stat Types
+        for (let i in stat_types) {
+            let stat_type = stat_types[i]; 
+            if (base_stats[stat_type]) {
+                let pet_stat = getPetStat(petData.stats, pet, stat_type);
+                lore.push(pet_stat);
+                console.log(pet_stat);
+            }
+        }
+    }
+
+    if (!petData.perks) {
+        lore.push("", "§7Perks not found.");
+    } else {
+        let perk_count = constants.perk_count[pet.rarity];
+        if (pet.type == "PHEONIX" && pet.rarity == "legendary") perk_count = 4;
+        for (let i = 0; i < perk_count; i++) {
+            const perk_data = petData.perks[i];
+            let pet_perk = getPetPerk(petData.perks[i], pet);
+            for (let i in pet_perk) 
+                lore.push(pet_perk[i]);
+        }
+        lore.push("", "§7Perk Count: §a" + perk_count);
+    }
+
+    console.log(lore);
+    return lore;
+}
+
+function getPetStat(pet_stats, pet, stat_type) {
+    let stat_num = pet_stats.base[stat_type];
+    if (pet_stats[pet.rarity] && pet_stats[pet.rarity][stat_type]) {
+        stat_num += pet_stats[pet.rarity][stat_type];
+    }
+
+    stat_num = stat_num * pet.level.level;
+
+    let stat_string = "§7" + helper.capitalizeFirstLetter(stat_type) + ": §a+" + Math.round(stat_num);
+    if (stat_type == "crit_chance" || stat_type == "crit_damage") stat_string += "%";
+
+    return stat_string;
+}
+
+function getPetPerk(pet_perk, pet) {
+    let perk_lore = [''];
+    perk_lore.push(pet_perk.name + ":");
+
+    let perk_desc = pet_perk.desc;
+    const perk_arr = pet_perk.stats.base;
+    for (let i = 0; i < perk_arr.length; i++) {
+        let perk_num = perk_arr[i];
+        if (pet_perk.stats[pet.rarity] && pet_perk.stats[pet.rarity][i]) {
+            perk_num += pet_perk.stats[pet.rarity][i];
+        }
+
+        perk_num = perk_num * pet.level.level;
+
+        perk_desc = perk_desc.replace('{stat}', perk_num);
+    }
+
+    perk_desc = perk_desc.split('\n');
+
+    for (let i in perk_desc) 
+        perk_lore.push(perk_desc[i]);
+
+    return perk_lore;
+}
+
 function getBonusStat(level, skill, max, incremention){
     let skill_stats = constants.bonus_stats[skill];
     let steps = Object.keys(skill_stats).sort((a, b) => Number(a) - Number(b)).map(a => Number(a));
@@ -1060,6 +1145,11 @@ module.exports = {
                 `§8${helper.capitalizeFirstLetter(petData.type)} Pet`,
             ];
 
+            petExtraLore = getPetLore(pet);
+            for (let i in petExtraLore) {
+                lore.push(petExtraLore[i]);
+            }
+
             if(pet.level.level < 100){
                 lore.push(
                     '',
@@ -1079,6 +1169,8 @@ module.exports = {
                 levelBar += ` §e${pet.level.xpCurrent.toLocaleString()}§6/§e${helper.formatNumber(pet.level.xpForNext, false, 10)}`;
 
                 lore.push(levelBar);
+            } else {
+                lore.push('', '§bMAX LEVEL');
             }
 
             pet.lore = '';

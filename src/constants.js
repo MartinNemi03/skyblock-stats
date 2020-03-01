@@ -235,40 +235,35 @@ module.exports = {
         "BAT": {
             head: "/head/382fc3f71b41769376a9e92fe3adbaac3772b999b219c9d6b4680ba9983e527",
             type: "mining",
-            foundIn: "Mushroom IX",
+            found: "Collection: Mushroom IX",
             stats: {
-                "BASE": {
+                base: {
                     "intelligence": 1,
                     "speed": 0.05
-                },
-                "COMMON": { "perks": 1 },
-                "UNCOMMON": { "perks": 1 },
-                "RARE": { "perks": 2 },
-                "EPIC": { "perks": 2 },
-                "LEGENDARY": { "perks": 3 }
+                }
             },
             perks: [
                 {
-                    name: "Candy Lover",
-                    desc: "Increases the chance for mobs\nto drop Candy by %stat%\%",
+                    name: "§6Candy Lover",
+                    desc: "§7Increases the chance for mobs\n§7to drop Candy by §a{stat}%",
                     stats: {
-                        "BASE": [0.1],
-                        "EPIC": [0.1],
-                        "LEGENDARY": [0.1],
+                        base: [0.1],
+                        epic: [0.1],
+                        legendary: [0.1]
                     }
                 },
                 {
-                    name: "Nightmare",
-                    desc: "During night, gain %stat%\n✎ Intelligence, %stat% ✦\nSpeed, and night vision",
+                    name: "§6Nightmare",
+                    desc: "§7During night, gain §a{stat}\n§b✎ Intelligence§7, §a{stat} §f✦\n§fSpeed§7, and night vision",
                     stats: {
-                        "BASE": [0.3, 0.5]
+                        base: [0.3, 0.5]
                     }
                 },
                 {
-                    name: "Fast Hooks",
-                    desc: "Decreases the cooldown of your\ngrappling hook by %stat%\%",
+                    name: "§6Fast Hooks",
+                    desc: "§7Decreases the cooldown of your\n§7grappling hook by §a{stat}%",
                     stats: {
-                        "BASE": [0.75]
+                        base: [0.75]
                     }
                 }
             ]
@@ -377,6 +372,15 @@ module.exports = {
             head: "/head/01433be242366af126da434b8735df1eb5b3cb2cede39145974e9c483607bac",
             type: "fishing"
         }
+    },
+
+    // Number of Perks based on pet's rarity
+    perk_count: {
+        common: 1,
+        uncommon: 1,
+        rare: 2,
+        epic: 2,
+        legendary: 3
     },
 
     // Player stats on a completely new profile
