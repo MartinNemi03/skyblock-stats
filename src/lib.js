@@ -135,12 +135,12 @@ function getPetLore(pet) {
         return lore;
     }
 
-    if (!petData.stats) {
+    if (!petData.stats || !petData.stats.base) {
         lore.push("", "§7Stats not found.");
     } else { 
         lore.push("");
         let base_stats = petData.stats.base; // Base Stats that is multiplied by level
-        let stat_types = ["intelligence", "speed"]; // List of Stat Types
+        let stat_types = ["health", "defense", "true_defense", "strength", "damage", "speed", "crit_chance", "crit_damage", "intelligence"]; // List of Stat Types
         for (let i in stat_types) {
             let stat_type = stat_types[i]; 
             if (base_stats[stat_type]) {
@@ -155,14 +155,20 @@ function getPetLore(pet) {
         lore.push("", "§7Perks not found.");
     } else {
         let perk_count = constants.perk_count[pet.rarity];
-        if (pet.type == "PHEONIX" && pet.rarity == "legendary") perk_count = 4;
-        for (let i = 0; i < perk_count; i++) {
-            const perk_data = petData.perks[i];
-            let pet_perk = getPetPerk(petData.perks[i], pet);
-            for (let i in pet_perk) 
-                lore.push(pet_perk[i]);
+        if (pet.rarity == "legendary") {
+            if (pet.type == "PHEONIX") perk_count = 4;
+            if (pet.type == "HORSE") perk_count = 2;
         }
-        lore.push("", "§7Perk Count: §a" + perk_count);
+        for (let i = 0; i < perk_count; i++) {
+            if (!petData.perks[i]) {
+                lore.push('', '§8Perk ${(i+1)} not found.');
+            } else {
+                let pet_perk = getPetPerk(petData.perks[i], pet);
+                for (let i in pet_perk) 
+                    lore.push(pet_perk[i]);
+            }
+        }
+        lore.push("", "§7Perk Count: §a${perk_count}");
     }
 
     console.log(lore);
@@ -171,13 +177,16 @@ function getPetLore(pet) {
 
 function getPetStat(pet_stats, pet, stat_type) {
     let stat_num = pet_stats.base[stat_type];
-    if (pet_stats[pet.rarity] && pet_stats[pet.rarity][stat_type]) {
+    let stat_const = 0;
+    if (pet_stats[pet.rarity] && pet_stats[pet.rarity][stat_type])
         stat_num += pet_stats[pet.rarity][stat_type];
-    }
 
-    stat_num = stat_num * pet.level.level;
+    if (pet_stats.const && pet_stats.const[stat_type])
+        stat_const = pet_stats.const[stat_type];
 
-    let stat_string = "§7" + helper.capitalizeFirstLetter(stat_type) + ": §a+" + Math.round(stat_num);
+    stat_num = (stat_num * pet.level.level) + stat_const;
+
+    let stat_string = "§7${helper.capitalizeFirstLetter(stat_type)}: §a+" + Math.round(stat_num);
     if (stat_type == "crit_chance" || stat_type == "crit_damage") stat_string += "%";
 
     return stat_string;
@@ -188,16 +197,18 @@ function getPetPerk(pet_perk, pet) {
     perk_lore.push(pet_perk.name + ":");
 
     let perk_desc = pet_perk.desc;
-    const perk_arr = pet_perk.stats.base;
-    for (let i = 0; i < perk_arr.length; i++) {
-        let perk_num = perk_arr[i];
-        if (pet_perk.stats[pet.rarity] && pet_perk.stats[pet.rarity][i]) {
-            perk_num += pet_perk.stats[pet.rarity][i];
+    if (pet_perk.stats && pet_perk.stats.base) {
+        const perk_arr = pet_perk.stats.base;
+        for (let i = 0; i < perk_arr.length; i++) {
+            let perk_num = perk_arr[i];
+            if (pet_perk.stats[pet.rarity] && pet_perk.stats[pet.rarity][i]) {
+                perk_num += pet_perk.stats[pet.rarity][i];
+            }
+
+            perk_num = perk_num * pet.level.level;
+
+            perk_desc = perk_desc.replace('{stat}', perk_num);
         }
-
-        perk_num = perk_num * pet.level.level;
-
-        perk_desc = perk_desc.replace('{stat}', perk_num);
     }
 
     perk_desc = perk_desc.split('\n');
@@ -1141,8 +1152,12 @@ module.exports = {
 
             pet.texture_path = petData.head;
 
+            let title = "pet";
+            if (petData.title)
+                title = petData.title;
+
             let lore = [
-                `§8${helper.capitalizeFirstLetter(petData.type)} Pet`,
+                `§8${helper.capitalizeFirstLetter(petData.type)} ${helper.capitalizeFirstLetter(title)}`,
             ];
 
             petExtraLore = getPetLore(pet);

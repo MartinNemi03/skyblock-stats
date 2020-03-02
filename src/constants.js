@@ -235,7 +235,6 @@ module.exports = {
         "BAT": {
             head: "/head/382fc3f71b41769376a9e92fe3adbaac3772b999b219c9d6b4680ba9983e527",
             type: "mining",
-            found: "Collection: Mushroom IX",
             stats: {
                 base: {
                     "intelligence": 1,
@@ -270,15 +269,98 @@ module.exports = {
         },
         "BLAZE": {
             head: "/head/b78ef2e4cf2c41a2d14bfde9caff10219f5b1bf5b35a49eb51c6467882cb5f0",
-            type: "combat"
+            type: "combat",
+            stats: {
+                base: {
+                    "defense": 0.2,
+                    "intelligence": 1
+                },
+                const: {
+                    "defense": 10
+                }
+            },
+            perks: [
+                {
+                    name: "§6Nether Embodiment",
+                    desc: "§7Increases all stats by §a{stat}%\n§7while on the Nether Fortress",
+                    stats: {
+                        base: [0.2]
+                    }
+                }, 
+                {
+                    name: "§6Bling Armor",
+                    desc: "§7Upgrades §cBlaze Armor §7stats\n§7and ability by §a{stat}%",
+                    stats: {
+                        base: [0.4]
+                    }
+                },
+                {
+                    name: "§6Fusion-Style Potato",
+                    desc: "§7Double effects of hot potato\n§7books"
+                }
+            ]
         },
         "CHICKEN": {
             head: "/head/7f37d524c3eed171ce149887ea1dee4ed399904727d521865688ece3bac75e",
-            type: "farming"
+            type: "farming",
+            stats: {
+                base: {
+                    "health": 2
+                }
+            },
+            perks: [
+                {
+                    name: "§6Light Feet",
+                    desc: "§7Reduces fall damage by\n§a{stat}%",
+                    stats: {
+                        base: [0.3],
+                        uncommon: [0.1],
+                        rare: [0.1],
+                        epic: [0.2],
+                        legendary: [0.2]
+                    }
+                },
+                {
+                    name: "§6Eggstra",
+                    desc: "§7Killing chickens has a §a{stat}%\n§7chance to drop an egg",
+                    stats: {
+                        base: [0.75],
+                        epic: [0.25],
+                        legendary: [0.25]
+                    }
+                },
+                {
+                    name: "§6Mighty Chickens",
+                    desc: "§7Chicken minions work §a{stat}%\n§7faster while on your island",
+                    stats: {
+                        base: [0.3]
+                    }
+                }
+            ]
         },
         "HORSE": {
             head: "/head/36fcd3ec3bc84bafb4123ea479471f9d2f42d8fb9c5f11cf5f4e0d93226",
-            type: "combat"
+            type: "combat",
+            title: "mount",
+            stats: {
+                base: {
+                    "speed": 0.25,
+                    "intelligence": 0.5
+                }
+            },
+            perks: [
+                {
+                    name: "§6Rideable",
+                    desc: "§7Right-click your summoned pet\n§7to ride it!"
+                },
+                {
+                    name: "§6Gallop",
+                    desc: "§7Increases the speed of your\n§7horse by §a{stat}%",
+                    stats: {
+                        base: [1.2]
+                    }
+                }
+            ]
         },
         "JERRY": {
             head: "/head/822d8e751c8f2fd4c8942c44bdb2f5ca4d8ae8e575ed3eb34c18a86e93b",
@@ -286,7 +368,39 @@ module.exports = {
         },
         "OCELOT": {
             head: "/head/5657cd5c2989ff97570fec4ddcdc6926a68a3393250c1be1f0b114a1db1",
-            type: "foraging"
+            type: "foraging",
+            stats: {
+                base: {
+                    "speed": 0.5
+                }
+            },
+            perks: [
+                {
+                    name: "§6Foraging Exp Boost",
+                    desc: "§7Boosts your Foraging exp by\n§a{stat}%",
+                    stats: {
+                        base: [0.2],
+                        epic: [0.1],
+                        legendary: [0.1]
+                    }
+                },
+                {
+                    name: "§6Tree Hugger",
+                    desc: "§7Foraging minions work §a{stat}%\n§7faster while on your island",
+                    stats: {
+                        base: [0.2],
+                        epic: [0.1],
+                        legendary: [0.1]
+                    }
+                },
+                {
+                    name: "§6Evasion",
+                    desc: "§7Gain a §a{stat}% §7chance to\n§7dodge attacks",
+                    stats: {
+                        base: [0.25]
+                    }
+                }
+            ]
         },
         "PIGMAN": {
             head: "/head/63d9cb6513f2072e5d4e426d70a5557bc398554c880d4e7b7ec8ef4945eb02f2",
@@ -294,7 +408,42 @@ module.exports = {
         },
         "RABBIT": {
             head: "/head/117bffc1972acd7f3b4a8f43b5b6c7534695b8fd62677e0306b2831574b",
-            type: "farming"
+            type: "farming",
+            stats: {
+                base: {
+                    "health": 1,
+                    "speed": 0.2
+                }
+            },
+            perks: [
+                {
+                    name: "§6Happy Feet",
+                    desc: "§7Jump potions also give §a+{stat}\n§7speed",
+                    stats: {
+                        base: [0.3],
+                        uncommon: [0.1],
+                        rare: [0.1],
+                        epic: [0.2],
+                        legendary: [0.2]
+                    }
+                },
+                {
+                    name: "§6Farming Exp Boost",
+                    desc: "§7Boosts your Farming exp by\n§a{stat}%",
+                    stats: {
+                        base: [0.2],
+                        epic: [0.1],
+                        legendary: [0.1]
+                    }
+                },
+                {
+                    name: "§6Efficient Farming",
+                    desc: "§7Farming minions work §a{stat}%\n§7faster while on your island",
+                    stats: {
+                        base: [0.3]
+                    }
+                }
+            ]
         },
         "SHEEP": {
             head: "/head/64e22a46047d272e89a1cfa13e9734b7e12827e235c2012c1a95962874da0",
