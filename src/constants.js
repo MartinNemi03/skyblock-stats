@@ -364,7 +364,26 @@ module.exports = {
         },
         "JERRY": {
             head: "/head/822d8e751c8f2fd4c8942c44bdb2f5ca4d8ae8e575ed3eb34c18a86e93b",
-            type: "combat"
+            type: "combat",
+            stats: {
+                base: {
+                    "intelligence": -1
+                }
+            },
+            perks: [
+                {
+                    name: "§6Jerry",
+                    desc: "§7Gain §a50% §7chance to deal\n§7your regular damage"
+                },
+                {
+                    name: "§6Jerry",
+                    desc: "§7Gain §a100% §7chance to\n§7receive a normal amount of drops\n§7from mobs"
+                },
+                {
+                    name: "§6Jerry",
+                    desc: "§7Actually adds §c0 damage §7to\n§7the Aspect of the Jerry"
+                }
+            ]
         },
         "OCELOT": {
             head: "/head/5657cd5c2989ff97570fec4ddcdc6926a68a3393250c1be1f0b114a1db1",
@@ -404,7 +423,36 @@ module.exports = {
         },
         "PIGMAN": {
             head: "/head/63d9cb6513f2072e5d4e426d70a5557bc398554c880d4e7b7ec8ef4945eb02f2",
-            type: "combat"
+            type: "combat",
+            stats: {
+                base: {
+                    "strength": 0.5,
+                    "defense": 0.5
+                }
+            },
+            perks: [
+                {
+                    name: "§6PVP King",
+                    desc: "§7Increases PVP damage by\n§a{stat}%",
+                    stats: {
+                        base: [0.3]
+                    }
+                },
+                {
+                    name: "§6Pork Master",
+                    desc: "§7Buffs the Pigman sword by\n§a{stat} §c❁ Damage §7and §a{stat} §c❁\n§cStrength",
+                    stats: {
+                        base: [0.4, 0.2]
+                    }
+                },
+                {
+                    name: "§6Giant Slayer",
+                    desc: "§7Deal §a{stat}% §7extra damage to\n§7monsters level 100 and up",
+                    stats: {
+                        base: [0.2]
+                    }
+                }
+            ]
         },
         "RABBIT": {
             head: "/head/117bffc1972acd7f3b4a8f43b5b6c7534695b8fd62677e0306b2831574b",
@@ -447,15 +495,106 @@ module.exports = {
         },
         "SHEEP": {
             head: "/head/64e22a46047d272e89a1cfa13e9734b7e12827e235c2012c1a95962874da0",
-            type: "alchemy"
+            type: "alchemy",
+            stats: {
+                base: {
+                    "intelligence": 1,
+                    "ability_damage": 0.5
+                }
+            },
+            perks: [
+                {
+                    name: "§6Mana Saver",
+                    desc: "§7Reduces the mana cost of\n§7abilities by §a{stat}%",
+                    stats: {
+                        base: [0.2]
+                    }
+                },
+                {
+                    name: "§6Overheal",
+                    desc: "§7Gives a §a{stat}% §7shield after\n§7not taking damage for 10s",
+                    stats: {
+                        base: [0.1]
+                    }
+                },
+                {
+                    name: "§6Dungeon Wizard",
+                    desc: "§7Increases your total mana by\n§a{stat}% §7while in dungeons",
+                    stats: {
+                        base: [0.2]
+                    }
+                }
+            ]
         },
         "SILVERFISH": {
             head: "/head/da91dab8391af5fda54acd2c0b18fbd819b865e1a8f1d623813fa761e924540",
-            type: "mining"
+            type: "mining",
+            stats: {
+                base: {
+                    "health": 0.2,
+                    "defense": 1
+                }
+            },
+            perks: [
+                {
+                    name: "§6True Defense Boost",
+                    desc: "§7Boosts your §f❂ True\n§fDefense§7 by §a{stat}",
+                    stats: {
+                        base: [0.05],
+                        uncommon: [0.05],
+                        rare: [0.05],
+                        epic: [0.05],
+                        legendary: [0.05]
+                    }
+                },
+                {
+                    name: "§6Mining Exp Boost",
+                    desc: "§7Boosts your Mining exp by\n§a{stat}%§7",
+                    stats: {
+                        base: [0.25]
+                    }
+                },
+                {
+                    name: "§6Dexterity",
+                    desc: "§7Gives permanent haste I"
+                }
+            ]
         },
         "WITHER_SKELETON": {
             head: "/head/f5ec964645a8efac76be2f160d7c9956362f32b6517390c59c3085034f050cff",
-            type: "mining"
+            type: "mining",
+            stats: {
+                base: {
+                    "defense": 0.25,
+                    "strength": 0.25,
+                    "crit_chance": 0.05,
+                    "crit_damage": 0.25,
+                    "intelligence": 0.25
+                }
+            },
+            perks: [
+                {
+                    name: "§6Stronger Bones",
+                    desc: "§7Take §a{stat}% §7less damage from\n§7skeletons",
+                    stats: {
+                        base: [0.3]
+                    }
+                },
+                {
+                    name: "§6Wither Blood",
+                    desc: "§7Deal §a{stat}% §7more damage to\n§7wither mobs",
+                    stats: {
+                        base: [0.5]
+                    }
+                },
+                {
+                    name: "§6Coal Crazy",
+                    desc: "§7Increases the chance to get\n§7double coal drops by §a{stat}%",
+                    stats: {
+                        base: [1]
+                    }
+                }
+            ]
         },
         "SKELETON_HORSE": {
             head: "/head/47effce35132c86ff72bcae77dfbb1d22587e94df3cbc2570ed17cf8973a",

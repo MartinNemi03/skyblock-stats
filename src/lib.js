@@ -140,7 +140,7 @@ function getPetLore(pet) {
     } else { 
         lore.push("");
         let base_stats = petData.stats.base; // Base Stats that is multiplied by level
-        let stat_types = ["health", "defense", "true_defense", "strength", "damage", "speed", "crit_chance", "crit_damage", "intelligence"]; // List of Stat Types
+        let stat_types = ["health", "defense", "true_defense", "strength", "ability_damage", "speed", "crit_chance", "crit_damage", "intelligence"]; // List of Stat Types
         for (let i in stat_types) {
             let stat_type = stat_types[i]; 
             if (base_stats[stat_type]) {
@@ -156,8 +156,13 @@ function getPetLore(pet) {
     } else {
         let perk_count = constants.perk_count[pet.rarity];
         if (pet.rarity == "legendary") {
-            if (pet.type == "PHEONIX") perk_count = 4;
-            if (pet.type == "HORSE") perk_count = 2;
+            switch (pet.type) {
+                case "PHEONIX":
+                    perk_count = 4;
+
+                case "HORSE":
+                    perk_count = 2;
+            }
         }
         for (let i = 0; i < perk_count; i++) {
             if (!petData.perks[i]) {
@@ -168,7 +173,7 @@ function getPetLore(pet) {
                     lore.push(pet_perk[i]);
             }
         }
-        lore.push("", "§7Perk Count: §a${perk_count}");
+        lore.push("", "§7Perk Count: §a"+perk_count);
     }
 
     console.log(lore);
@@ -186,7 +191,14 @@ function getPetStat(pet_stats, pet, stat_type) {
 
     stat_num = (stat_num * pet.level.level) + stat_const;
 
-    let stat_string = "§7${helper.capitalizeFirstLetter(stat_type)}: §a+" + Math.round(stat_num);
+    let stat_string = "§7"+helper.capitalizeFirstLetter(stat_type)+": §a";
+
+    // stoopid jerry and his negative intel
+    if (stat_num >= 0) 
+        stat_string += "+"+Math.round(stat_num);
+    else
+        stat_string += Math.round(stat_num);
+
     if (stat_type == "crit_chance" || stat_type == "crit_damage") stat_string += "%";
 
     return stat_string;
@@ -201,13 +213,16 @@ function getPetPerk(pet_perk, pet) {
         const perk_arr = pet_perk.stats.base;
         for (let i = 0; i < perk_arr.length; i++) {
             let perk_num = perk_arr[i];
-            if (pet_perk.stats[pet.rarity] && pet_perk.stats[pet.rarity][i]) {
+            let perk_const = 0;
+            if (pet_perk.stats[pet.rarity] && pet_perk.stats[pet.rarity][i])
                 perk_num += pet_perk.stats[pet.rarity][i];
-            }
+                
+            if (pet_perk.stats.const && pet_perk.stats.const[i])
+                perk_const = pet_perk.stats.const[i];
 
-            perk_num = perk_num * pet.level.level;
+            perk_num = (perk_num * pet.level.level) + perk_const;
 
-            perk_desc = perk_desc.replace('{stat}', perk_num);
+            perk_desc = perk_desc.replace('{stat}', perk_num.toFixed(1));
         }
     }
 
