@@ -161,6 +161,7 @@ function getPetLore(pet) {
                     perk_count = 4;
 
                 case "HORSE":
+                case "SKELETON_HORSE":
                     perk_count = 2;
             }
         }
@@ -173,7 +174,7 @@ function getPetLore(pet) {
                     lore.push(pet_perk[i]);
             }
         }
-        lore.push("", "§7Perk Count: §a"+perk_count);
+        lore.push("", "§8Perk Count: §a"+perk_count);
     }
 
     console.log(lore);
@@ -191,7 +192,7 @@ function getPetStat(pet_stats, pet, stat_type) {
 
     stat_num = (stat_num * pet.level.level) + stat_const;
 
-    let stat_string = "§7"+helper.capitalizeFirstLetter(stat_type)+": §a";
+    let stat_string = "§7"+helper.titleCase(stat_type.split("_").join(" "))+": §a";
 
     // stoopid jerry and his negative intel
     if (stat_num >= 0) 
@@ -1165,7 +1166,10 @@ module.exports = {
             if(!petData)
                 continue;
 
-            pet.texture_path = petData.head;
+            if (petData.head)
+                pet.texture_path = petData.head;
+            else 
+                pet.texture_path = "/head/c2bf95d22e152d8a3a0476444c4114044903b937a679a00b12b2f174a1075499";
 
             let title = "pet";
             if (petData.title)

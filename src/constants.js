@@ -365,6 +365,7 @@ module.exports = {
         "JERRY": {
             head: "/head/822d8e751c8f2fd4c8942c44bdb2f5ca4d8ae8e575ed3eb34c18a86e93b",
             type: "combat",
+            title: "jerry",
             stats: {
                 base: {
                     "intelligence": -1
@@ -599,10 +600,65 @@ module.exports = {
         "SKELETON_HORSE": {
             head: "/head/47effce35132c86ff72bcae77dfbb1d22587e94df3cbc2570ed17cf8973a",
             type: "combat",
+            title: "mount",
+            stats: {
+                base: {
+                    "speed": 0.5,
+                    "intelligence": 1
+                }
+            },
+            perks: [
+                {
+                    name: "§6Ridable",
+                    desc: "§7Right-click your summoned pet\n§7to ride it!"
+                },
+                {
+                    name: "§6Gallop",
+                    desc: "§7Increases the speed of your\n§7horse by §a{stat}%",
+                    stats: {
+                        base: [1.5]
+                    }
+                }
+            ]
         },
         "WOLF": {
             head: "/head/dc3dd984bb659849bd52994046964c22725f717e986b12d548fd169367d494",
-            type: "combat"
+            type: "combat",
+            stats: {
+                base: {
+                    "health": 0.5,
+                    "true_defense": 0.1,
+                    "speed": 0.2,
+                    "crit_damage": 0.1
+                }
+            },
+            perks: [
+                {
+                    name: "§6Alpha Dog",
+                    desc: "§7Take §a{stat}% §7less damage from\n§7wolves",
+                    stats: {
+                        base: [0.1],
+                        uncommon: [0.1],
+                        rare: [0.1],
+                        epic: [0.2],
+                        legendary: [0.2]
+                    }
+                },
+                {
+                    name: "§6Pack Leader",
+                    desc: "§7Gain §a{stat} §9☠ Crit Damage\n§7for every nearby wolf monsters\n§8Max 10 wolves",
+                    stats: {
+                        base: [0.1]
+                    }
+                },
+                {
+                    name: "§6Combat Exp Boost",
+                    desc: "§7Boosts your Combat exp by\n§a{stat}%",
+                    stats: {
+                        base: [0.3]
+                    }
+                }
+            ]
         },
         "ENDERMAN": {
             head: "/head/6eab75eaa5c9f2c43a0d23cfdce35f4df632e9815001850377385f7b2f039ce1",
