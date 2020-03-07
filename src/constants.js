@@ -662,11 +662,54 @@ module.exports = {
         },
         "ENDERMAN": {
             head: "/head/6eab75eaa5c9f2c43a0d23cfdce35f4df632e9815001850377385f7b2f039ce1",
-            type: "combat"
+            type: "combat",
+            stats: {
+                base: {
+                    "crit_damage": 0.75
+                }
+            },
+            perks: [
+                {
+                    name: "§6Enderian",
+                    desc: "§7Take §a{stat}% §7less damage from\n§7end monsters",
+                    stats: {
+                        base: [0.1],
+                        uncommon: [0.1],
+                        rare: [0.1],
+                        epic: [0.2],
+                        legendary: [0.2]
+                    }
+                },
+                {
+                    name: "§6Teleport Savvy",
+                    desc: "§7Buffs the Aspect of the End\n§7ability granting §a{stat} §7weapon\n§7damage for 5s on use",
+                    stats: {
+                        base: [0.4],
+                        epic: [0.1],
+                        legendary: [0.1]
+                    }
+                },
+                {
+                    name: "§6Zealot Madness",
+                    desc: "§7Increases your odds to find a\n§7special Zealot by §a{stat}%",
+                    stats: {
+                        base: [0.2]
+                    }
+                }
+            ]
         },
         "PHOENIX": {
             head: "/head/23aaf7b1a778949696cb99d4f04ad1aa518ceee256c72e5ed65bfa5c2d88d9e",
-            type: "combat"
+            type: "combat",
+            stats: {
+                base: {
+                    "strength": 0.6,
+                    "intelligence": 1
+                },
+                const: {
+                    "intelligence": 50
+                }
+            }
         },
         "MAGMA_CUBE": {
             head: "/head/38957d5023c937c4c41aa2412d43410bda23cf79a9f6ab36b76fef2d7c429",

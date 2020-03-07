@@ -198,11 +198,12 @@ function getPetStat(pet_stats, pet, stat_type) {
 
     // stoopid jerry and his negative intel
     if (stat_num >= 0) 
-        stat_string += "+"+Math.round(stat_num);
-    else
-        stat_string += Math.round(stat_num);
+        stat_string += "+";
 
-    if (stat_type == "crit_chance" || stat_type == "crit_damage") stat_string += "%";
+    if (stat_type === "crit_damage" || stat_type === "crit_chance")
+        stat_string += stat_num.toFixed(1)+"%";
+    else 
+        stat_string += Math.round(stat_num);
 
     return stat_string;
 }
