@@ -215,7 +215,7 @@ function getPetStat(pet_stats, pet, stat_type) {
         stat_string += "+";
 
     if (stat_type === "crit_damage" || stat_type === "crit_chance")
-        stat_string += stat_num.toFixed(1)+"%";
+        stat_string += stat_num.toFixed(0)+"%";
     else 
         stat_string += Math.round(stat_num);
 
