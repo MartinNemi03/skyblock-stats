@@ -709,19 +709,135 @@ module.exports = {
                 const: {
                     "intelligence": 50
                 }
-            }
+            },
+            perks: [
+                {
+                    name: "§6Rekindle",
+                    desc: "§7Before death, become §eimmune\n§7and gain §c{stat} §c❁ Strength\n§7for §a{stat} §7seconds\n§83 minutes cooldown",
+                    stats: {
+                        base: [0.1, 0.02],
+                        const: [10, 2]
+                    }
+                },
+                {
+                    name: "§6Fourth Flare",
+                    desc: "§7On 4th melee strike, §6ignite\n§7mobs, dealing §c{stat}x §7your\n§9☠ Crit Damage §7each second\n§7for §a{stat} §7seconds",
+                    stats: {
+                        base: [0.07, 0.025],
+                        legendary: [0.02, 0.005],
+                        const: [1, 2]
+                    }
+                },
+                {
+                    name: "§6Magic Bird",
+                    desc: "§7You may always fly on your\n§7private island"
+                },
+                {
+                    name: "§6Eternal Coins",
+                    desc: "§7Don't lose coins from death."
+                }
+            ]
         },
         "MAGMA_CUBE": {
             head: "/head/38957d5023c937c4c41aa2412d43410bda23cf79a9f6ab36b76fef2d7c429",
-            type: "combat"
+            type: "combat",
+            stats: {
+                "health": 0.5,
+                "defense": 0.33,
+                "strentgh": 0.2
+            },
+            perks: [
+                {
+                    name: "§6Slimy Minions",
+                    desc: "§7Slime minions work §a{stat}%\n§7faster while on your island",
+                    stats: {
+                        base: [0.2],
+                        epic: [0.1],
+                        legendary: [0.1]
+                    }
+                },
+                {
+                    name: "§6Salt Blade",
+                    desc: "§7Deal §a{stat}% §7more damage to\n§7slimes",
+                    stats: {
+                        base: [0.2]
+                    }
+                },
+                {
+                    name: "§6Hot Ember",
+                    desc: "§7Buffs the stats of Ember Armor\n§7by §a{stat}%",
+                    stats: {
+                        base: [1]
+                    }
+                }
+            ]
         },
         "FLYING_FISH": {
             head: "/head/40cd71fbbbbb66c7baf7881f415c64fa84f6504958a57ccdb8589252647ea",
-            type: "fishing"
+            type: "fishing",
+            stats: {
+                base: {
+                    "health": 0.5,
+                    "defense": 0.5
+                }
+            },
+            perks: [
+                {
+                    name: "§6Quick Reel",
+                    desc: "§7Increases fishing speed by\n§a{stat}%",
+                    stats: {
+                        base: [0.1]
+                    }
+                },
+                {
+                    name: "§6Water Bender",
+                    desc: "§7Gives §a{stat} §c❁ Strength §7and\n§a❈ Defense §7when near water",
+                    stats: {
+                        base: [0.4],
+                        epic: [0.1],
+                        legendary: [0.1]
+                    }
+                },
+                {
+                    name: "§6Deep Sea Diver",
+                    desc: "§7Increases the stats of Diver\n§7Armor by §a{stat}%",
+                    stats: {
+                        base: [0.3]
+                    }
+                }
+            ]
         },
         "BLUE_WHALE": {
             head: "/head/dab779bbccc849f88273d844e8ca2f3a67a1699cb216c0a11b44326ce2cc20",
-            type: "fishing"
+            type: "fishing",
+            stats: {
+                base: {
+                    "health": 2
+                }
+            },
+            perks: [
+                {
+                    name: "§6Ingest",
+                    desc: "§7All potions heal §c+{stat}❤",
+                    stats: {
+                        base: [2.5]
+                    }
+                },
+                {
+                    name: "§6Bulk",
+                    desc: "§7Gain §a{stat}§a❈ Defense §7per\n§c20.0 Max §c❤ Health",
+                    stats: {
+                        base: [0.01]
+                    }
+                },
+                {
+                    name: "§6Archimedes",
+                    desc: "§7Gain §c+{stat}% Max §c❤ Health",
+                    stats: {
+                        base: [0.2]
+                    }
+                }
+            ]
         },
         "TIGER": {
             head: "/head/fc42638744922b5fcf62cd9bf27eeab91b2e72d6c70e86cc5aa3883993e9d84",

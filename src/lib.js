@@ -210,7 +210,7 @@ function getPetStat(pet_stats, pet, stat_type) {
 
     let stat_string = "§7"+helper.titleCase(stat_type.split("_").join(" "))+": §a";
 
-    // stoopid jerry and his negative intel
+    // In case of negative stats
     if (stat_num >= 0) 
         stat_string += "+";
 
