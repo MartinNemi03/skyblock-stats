@@ -1,5 +1,23 @@
 document.addEventListener('DOMContentLoaded', function(){
-    tippy('*[data-tippy-content]');
+    let userAgent = window.navigator.userAgent;
+    let tippyInstance;
+
+    tippy('*[data-tippy-content]:not(.interactive-tooltip)', {
+        trigger: 'mouseenter click'
+    });
+
+    tippyInstance = tippy('.interactive-tooltip', {
+        trigger: 'mouseenter click',
+        interactive: true,
+        appendTo: () => document.body,
+        onTrigger(instance, event){
+            if(event.type == 'click')
+                dimmer.classList.add('show-dimmer');
+        },
+        onHide(){
+            dimmer.classList.remove('show-dimmer');
+        }
+    });
 
     const all_items = items.armor.concat(items.inventory, items.enderchest, items.talisman_bag, items.fishing_bag, items.quiver, items.potion_bag);
 
@@ -8,9 +26,9 @@ document.addEventListener('DOMContentLoaded', function(){
     let inventoryContainer = document.querySelector('#inventory_container');
 
     if(calculated.profile.cute_name == 'Deleted')
-        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.profile_id);
+        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.profile_id + window.location.search);
     else
-        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.cute_name);
+        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.cute_name + window.location.search);
 
     function isEnchanted(item){
         if(item.animated)
@@ -47,10 +65,25 @@ document.addEventListener('DOMContentLoaded', function(){
         inventoryView.className = 'inventory-view current-inventory processed';
         inventoryView.setAttribute('data-inventory-type', type);
 
-        if(type == 'inventory')
-            inventory = inventory.slice(9, 36).concat(inventory.slice(0, 9));
+        let countSlotsUsed = 0;
 
-        inventory.forEach((item, index) => {
+        inventory.forEach(function(item){
+            if(Object.keys(item).length > 1)
+                countSlotsUsed++;
+        });
+
+        switch(type){
+            case 'inventory':
+                inventory = inventory.slice(9, 36).concat(inventory.slice(0, 9));
+                break;
+            case 'enderchest':
+                break;
+            default:
+                if(type in calculated.bag_sizes)
+                    inventory = inventory.slice(0, Math.max(countSlotsUsed, calculated.bag_sizes[type]));
+        }
+
+        inventory.forEach(function(item, index){
             let inventorySlot = document.createElement('div');
             inventorySlot.className = 'inventory-slot';
 
@@ -174,8 +207,10 @@ document.addEventListener('DOMContentLoaded', function(){
             itemIcon.className = 'stats-piece-icon item-icon icon-' + item.id + '_' + item.Damage;
         }
 
+        /* broken sometimes
         if(isEnchanted(item))
             handleEnchanted(itemIcon);
+            */
 
         itemLore.innerHTML = item.lore || '';
 
@@ -321,7 +356,20 @@ document.addEventListener('DOMContentLoaded', function(){
 
     [].forEach.call(document.querySelectorAll('.stat-weapons .select-weapon'), function(element){
         let item_index = element.parentNode.getAttribute('data-item-index');
-        let item = items.weapons.filter(a => a.item_index == item_index)[0];
+        let filterItems;
+
+        if(element.parentNode.hasAttribute('data-backpack-index')){
+            let backpack = all_items.filter(a => a.item_index == Number(element.parentNode.getAttribute('data-backpack-index')));
+
+            if(backpack.length == 0)
+                return;
+
+            filterItems = backpack[0].containsItems;
+        }else{
+             filterItems = items.weapons.filter(a => !('backpackIndex' in a));
+        }
+
+        let item = filterItems.filter(a => a.item_index == item_index)[0];
 
         let weaponStats = calculated.weapon_stats[item_index];
         let stats;
@@ -525,7 +573,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         statsContent.classList.remove('sticky-stats')
                     }else{
                         showLore(element, false);
-                        fillLore(element);
+
+                        if(Number(statsContent.getAttribute('data-item-index')) != itemIndex)
+                            fillLore(element);
                     }
                 }
             }
@@ -565,19 +615,41 @@ document.addEventListener('DOMContentLoaded', function(){
         element.addEventListener('click', closeLore);
     });
 
-    let searchUser = document.querySelector('#inp_search_user');
+    [].forEach.call(document.querySelectorAll('.copy-text'), function(e){
+        let element = e;
 
-    searchUser.addEventListener('keyup', function(e){
-        let playerName = searchUser.value;
+        let copyNotification = tippy(element, {
+          content: 'Copied to clipboard!',
+          trigger: 'manual'
+        });
 
-        if(playerName.trim().length == 0)
-            return;
+        element.addEventListener('click', function(){
+            navigator.clipboard.writeText(element.innerHTML).then(function(){
+                copyNotification.show();
 
-        if(e.keyCode == 13)
-            document.location = '/stats/' + playerName;
-        else
-            document.querySelector('#btn_search_user').href = '/stats/' + playerName;
+                setTimeout(function(){
+                    copyNotification.hide();
+                }, 1500);
+            }, function(){});
+        });
     });
+
+    let socialsShown = false;
+    let revealSocials = document.querySelector('#reveal_socials');
+
+    if(revealSocials){
+        revealSocials.addEventListener('click', function(){
+            if(socialsShown){
+                socialsShown = false;
+                document.querySelector('#additional_socials').classList.remove('socials-shown');
+                document.querySelector('#reveal_socials').classList.remove('socials-shown');
+            }else{
+                socialsShown = true;
+                document.querySelector('#additional_socials').classList.add('socials-shown');
+                document.querySelector('#reveal_socials').classList.add('socials-shown');
+            }
+        });
+    }
 
     let statContainers = document.querySelectorAll('.stat-container[data-stat]');
     let wrapperHeight = document.querySelector('#wrapper').offsetHeight;
@@ -699,6 +771,56 @@ document.addEventListener('DOMContentLoaded', function(){
             updateStatsPositions();
         });
     }
+
+    [].forEach.call(document.querySelectorAll('.xp-skill'), function(element){
+        let skillProgressText = element.querySelector('.skill-progress-text');
+        let originalText = skillProgressText.innerHTML;
+
+        element.addEventListener('mouseenter', function(){
+            skillProgressText.innerHTML = skillProgressText.getAttribute('data-hover-text');
+        });
+
+        element.addEventListener('mouseleave', function(){
+            skillProgressText.innerHTML = originalText;
+        });
+    });
+
+    [].forEach.call(document.querySelectorAll('.kills-deaths-container .show-all.enabled'), function(element){
+        let parent = element.parentNode;
+        let kills = calculated[element.getAttribute('data-type')];
+
+        element.addEventListener('click', function(){
+            parent.style.maxHeight = parent.offsetHeight + 'px';
+            parent.classList.add('all-shown');
+            element.remove();
+
+            kills.slice(10).forEach(function(kill, index){
+                let killElement = document.createElement('div');
+                let killRank = document.createElement('div');
+                let killEntity = document.createElement('div');
+                let killAmount = document.createElement('div');
+                let statSeparator = document.createElement('div');
+
+                killElement.className = 'kill-stat';
+                killRank.className = 'kill-rank';
+                killEntity.className = 'kill-entity';
+                killAmount.className = 'kill-amount';
+                statSeparator.className = 'stat-separator';
+
+                killRank.innerHTML = '#' + (index + 11) + '&nbsp;';
+                killEntity.innerHTML = kill.entityName;
+                killAmount.innerHTML = kill.amount.toLocaleString();
+                statSeparator.innerHTML = ':&nbsp;';
+
+                killElement.appendChild(killRank);
+                killElement.appendChild(killEntity);
+                killElement.appendChild(statSeparator);
+                killElement.appendChild(killAmount);
+
+                parent.appendChild(killElement);
+            });
+        });
+    });
 
     window.addEventListener('keydown', function(e){
         let selectedPiece = document.querySelector('.rich-item:focus');

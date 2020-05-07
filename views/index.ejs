@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <%- include('../includes/resources') %>
     <title>SkyBlock Stats</title>
+    <meta name="description" content="A beautiful site for sharing your SkyBlock profile 🌹">
     <link rel="shortcut icon" href="/resources/img/logo_square.png" type="image/png">
-    <meta charset="utf-8">
     <meta property="og:image" content="/resources/img/logo_square.png">
     <meta property="og:title" content="SkyBlock Stats">
     <meta property="og:description" content="A beautiful site for sharing your SkyBlock profile 🌹">
+<%- include('../includes/resources') %>
     <style>
     @media (max-width: 480px){
+        #search_user{
+            display: none;
+        }
+
         header{
             height: 45px;
             text-align: center;
@@ -32,7 +36,8 @@
             <div id="enter_player_box">
                 <p>Show SkyBlock stats for</p>
                 <input <% if(player){ %> value="<%= player %>" <% }%> id="inp_enter_username" type="text" placeholder="Enter username">
-                <a href="<% if(player){ %>/stats/<%= player %><% }%>" id="goto_target_username">Show me</a>
+                <a href="<% if(player){ %>/stats/<%= player %><% }else{ %>/random/stats<% } %>" id="goto_target_username">Show me</a>
+                <p>or take me to a <a href="/random/stats">random profile</a>.</p>
             </div>
         </div>
         <div id="error_box_wrapper" <% if(error){ %>class="show-error"<% } %>>
@@ -40,20 +45,148 @@
                 <div id="error_title">Error</div><div id="error_text"><%= error %></div>
             </div>
         </div>
+        <% if('top_profiles' in extra){ %>
+        <div id="top_profiles_box_wrapper">
+            <% for(const [index, profile] of extra.top_profiles.entries()){
+                const lastUpdated = profile.profileInfo.last_save;
+                let lastUpdatedText = "";
+
+                const diff = (+new Date() - lastUpdated) / 1000;
+
+                if(diff < 10 * 60)
+                    lastUpdatedText = `<span class="stat-value">Currently online</span>`;
+                else
+                    lastUpdatedText = `<span class="stat-name">Last online: </span><span class="stat-value">${moment(lastUpdated).fromNow()}</span>`;
+
+                %>
+                <a href="/stats/<%= profile.uuid %>" class="top-profile">
+                    <img src="https://crafatar.com/avatars/<%= profile.uuid %>?size=128&overlay" class="profile-avatar">
+                    <div class="profile-name"><%= profile.userInfo.username %><% if('emoji' in profile.userInfo){ %><%- extra.twemoji.parse(profile.userInfo.emoji) %><% } %></div><br>
+                    <div class="profile-last-online"><%- lastUpdatedText %></div>
+                    <% /*
+
+                    - Hide Views for now due to abuse -
+
+                    %>
+                    <div class="profile-views">Views: <%= helper.formatNumber(profile.total, true) %></div>
+                    <div class="profile-rank">#<%= index + 1 %></div>
+                    <% */ %>
+                </a>
+            <% } %>
+        </div>
+        <% } %>
         <script src="/resources/js/js.cookie.min.js"></script>
         <script>
             let targetUsername = document.getElementById("inp_enter_username");
+            let searchUser = document.getElementById('search_user');
+            let inputSearchUser = document.getElementById('inp_search_user');
+            let btnSearchUser = document.getElementById('btn_search_user');
 
-            targetUsername.addEventListener('keyup', function(e){
+            function updateUserTarget(e){
                 let playerName = targetUsername.value;
 
+                if(playerName)
+                    inputSearchUser.value = playerName;
+
                 if(playerName.trim().length == 0)
-                    return;
+                    document.querySelector('#goto_target_username').href = '/random/stats';
 
                 if(e.keyCode == 13)
                     document.location = '/stats/' + playerName;
                 else
                     document.querySelector('#goto_target_username').href = '/stats/' + playerName;
+            }
+
+            targetUsername.addEventListener('keyup', updateUserTarget);
+            targetUsername.addEventListener('change', updateUserTarget);
+
+            let scrollLock = false;
+            let currentOffset = 10;
+            let limit = 20;
+            let smallUserSearch = false;
+
+            let reachedEnd = false;
+
+            window.addEventListener('keydown', function(e){
+                if(/[a-zA-Z0-9-_ ]/.test(String.fromCharCode(e.keyCode)))
+                    if(smallUserSearch)
+                        inputSearchUser.focus();
+                    else
+                        targetUsername.focus();
+            });
+
+            window.addEventListener('scroll', function(){
+                if(window.scrollY > window.innerHeight * 0.5 && smallUserSearch === false){
+                    searchUser.classList.add('show-user-search');
+                    smallUserSearch = true;
+
+                    searchUser.setAttribute('tabindex', '0');
+                    btnSearchUser.setAttribute('tabindex', '0');
+
+                    targetUsername.blur();
+                }else if(window.scrollY <= window.innerHeight * 0.5 && smallUserSearch){
+                    searchUser.classList.remove('show-user-search');
+                    smallUserSearch = false;
+
+                    searchUser.setAttribute('tabindex', '-1');
+                    btnSearchUser.setAttribute('tabindex', '-1');
+
+                    inputSearchUser.blur();
+                }
+
+                /*
+
+                - Hide Views for now due to abuse -
+
+                if(window.innerHeight + window.scrollY > document.documentElement.offsetHeight - 100 && !scrollLock && !reachedEnd){
+                    scrollLock = true;
+
+                    let topRequest = new XMLHttpRequest();
+
+                    topRequest.onload = function(){
+                        let json = JSON.parse(this.responseText);
+
+                        if(json.length == 0)
+                            reachedEnd = true;
+
+                        json.forEach(function(profile, index){
+                            let profileElement = document.createElement('a');
+                            let profileAvatar = document.createElement('img');
+                            let profileName = document.createElement('div');
+                            let profileViews = document.createElement('div');
+                            let profileRank = document.createElement('div');
+
+                            profileAvatar.src = 'https://crafatar.com/avatars/' + profile.uuid + '?size=128&overlay';
+                            profileName.innerHTML = profile.userInfo.username;
+                            profileViews.innerHTML = 'Views: ' + formatNumber(profile.total, true);
+                            profileRank.innerHTML = '#' + (currentOffset + index + 1);
+
+                            profileAvatar.className = 'profile-avatar';
+                            profileName.className = 'profile-name';
+                            profileViews.className = 'profile-views';
+                            profileRank.className = 'profile-rank';
+
+                            profileElement.className = 'top-profile';
+
+                            profileElement.appendChild(profileAvatar);
+                            profileElement.appendChild(profileName);
+                            profileElement.appendChild(profileViews);
+                            profileElement.appendChild(profileRank);
+
+                            profileElement.href = '/stats/' + profile.uuid;
+
+                            document.querySelector('#top_profiles_box_wrapper').appendChild(profileElement);
+                        });
+
+                        scrollLock = false;
+                        currentOffset += limit;
+                    }
+
+                    topRequest.open("GET", '/api/topViews?offset=' + currentOffset + '&limit=' + limit);
+                    topRequest.send();
+                }
+
+                */
             });
         </script>
     </body>

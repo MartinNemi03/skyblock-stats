@@ -81,17 +81,59 @@ module.exports = {
         24: 15300
     },
 
+    guild_xp: [
+        100000,
+        150000,
+        250000,
+        500000,
+        750000,
+        1000000,
+        1250000,
+        1500000,
+        2000000,
+        2500000,
+        2500000,
+        2500000,
+        2500000,
+        2500000,
+        3000000
+    ],
+
     // total XP required for level of Slayer
     slayer_xp: {
-        1: 5,
-        2: 15,
-        3: 200,
-        4: 1000,
-        5: 5000,
-        6: 20000,
-        7: 100000,
-        8: 400000,
-        9: 1000000
+        zombie: {
+            1: 5,
+            2: 15,
+            3: 200,
+            4: 1000,
+            5: 5000,
+            6: 20000,
+            7: 100000,
+            8: 400000,
+            9: 1000000
+        },
+        spider: {
+            1: 5,
+            2: 15,
+            3: 200,
+            4: 1000,
+            5: 5000,
+            6: 20000,
+            7: 100000,
+            8: 400000,
+            9: 1000000
+        },
+        wolf: {
+            1: 5,
+            2: 15,
+            3: 200,
+            4: 1500,
+            5: 5000,
+            6: 20000,
+            7: 100000,
+            8: 400000,
+            9: 1000000
+        }
     },
 
     slayer_boss_xp: {
@@ -234,116 +276,220 @@ module.exports = {
     pet_data: {
         "BAT": {
             head: "/head/382fc3f71b41769376a9e92fe3adbaac3772b999b219c9d6b4680ba9983e527",
-            type: "mining"
+            type: "mining",
+            emoji: "🦇"
         },
         "BLAZE": {
             head: "/head/b78ef2e4cf2c41a2d14bfde9caff10219f5b1bf5b35a49eb51c6467882cb5f0",
-            type: "combat"
+            type: "combat",
+            emoji: "🔥"
         },
         "CHICKEN": {
             head: "/head/7f37d524c3eed171ce149887ea1dee4ed399904727d521865688ece3bac75e",
-            type: "farming"
+            type: "farming",
+            emoji: "🐔"
         },
         "HORSE": {
             head: "/head/36fcd3ec3bc84bafb4123ea479471f9d2f42d8fb9c5f11cf5f4e0d93226",
-            type: "combat"
+            type: "combat",
+            emoji: "🐴"
         },
         "JERRY": {
             head: "/head/822d8e751c8f2fd4c8942c44bdb2f5ca4d8ae8e575ed3eb34c18a86e93b",
-            type: "combat"
+            type: "combat",
+            emoji: "🧑"
         },
         "OCELOT": {
             head: "/head/5657cd5c2989ff97570fec4ddcdc6926a68a3393250c1be1f0b114a1db1",
-            type: "foraging"
+            type: "foraging",
+            emoji: "🐈"
         },
         "PIGMAN": {
             head: "/head/63d9cb6513f2072e5d4e426d70a5557bc398554c880d4e7b7ec8ef4945eb02f2",
-            type: "combat"
+            type: "combat",
+            emoji: "🐷"
         },
         "RABBIT": {
             head: "/head/117bffc1972acd7f3b4a8f43b5b6c7534695b8fd62677e0306b2831574b",
-            type: "farming"
+            type: "farming",
+            emoji: "🐇"
         },
         "SHEEP": {
             head: "/head/64e22a46047d272e89a1cfa13e9734b7e12827e235c2012c1a95962874da0",
-            type: "alchemy"
+            type: "alchemy",
+            emoji: "🐑"
         },
         "SILVERFISH": {
             head: "/head/da91dab8391af5fda54acd2c0b18fbd819b865e1a8f1d623813fa761e924540",
-            type: "mining"
+            type: "mining",
+            emoji: "🐛"
         },
         "WITHER_SKELETON": {
             head: "/head/f5ec964645a8efac76be2f160d7c9956362f32b6517390c59c3085034f050cff",
-            type: "mining"
+            type: "mining",
+            emoji: "💀"
         },
         "SKELETON_HORSE": {
             head: "/head/47effce35132c86ff72bcae77dfbb1d22587e94df3cbc2570ed17cf8973a",
             type: "combat",
+            emoji: "🐴"
         },
         "WOLF": {
             head: "/head/dc3dd984bb659849bd52994046964c22725f717e986b12d548fd169367d494",
-            type: "combat"
+            type: "combat",
+            emoji: "🐺"
         },
         "ENDERMAN": {
             head: "/head/6eab75eaa5c9f2c43a0d23cfdce35f4df632e9815001850377385f7b2f039ce1",
-            type: "combat"
+            type: "combat",
+            emoji: "🔮"
         },
         "PHOENIX": {
             head: "/head/23aaf7b1a778949696cb99d4f04ad1aa518ceee256c72e5ed65bfa5c2d88d9e",
-            type: "combat"
+            type: "combat",
+            emoji: "🐦"
         },
         "MAGMA_CUBE": {
             head: "/head/38957d5023c937c4c41aa2412d43410bda23cf79a9f6ab36b76fef2d7c429",
-            type: "combat"
+            type: "combat",
+            emoji: "🌋"
         },
         "FLYING_FISH": {
             head: "/head/40cd71fbbbbb66c7baf7881f415c64fa84f6504958a57ccdb8589252647ea",
-            type: "fishing"
+            type: "fishing",
+            emoji: "🐟"
         },
         "BLUE_WHALE": {
             head: "/head/dab779bbccc849f88273d844e8ca2f3a67a1699cb216c0a11b44326ce2cc20",
-            type: "fishing"
+            type: "fishing",
+            emoji: "🐋"
         },
         "TIGER": {
             head: "/head/fc42638744922b5fcf62cd9bf27eeab91b2e72d6c70e86cc5aa3883993e9d84",
-            type: "combat"
+            type: "combat",
+            emoji: "🐯"
         },
         "LION": {
             head: "/head/38ff473bd52b4db2c06f1ac87fe1367bce7574fac330ffac7956229f82efba1",
-            type: "foraging"
+            type: "foraging",
+            emoji: "🦁"
         },
         "PARROT": {
             head: "/head/5df4b3401a4d06ad66ac8b5c4d189618ae617f9c143071c8ac39a563cf4e4208",
-            type: "alchemy"
+            type: "alchemy",
+            emoji: "🦜"
         },
         "SNOWMAN": {
             head: "/head/11136616d8c4a87a54ce78a97b551610c2b2c8f6d410bc38b858f974b113b208",
-            type: "combat"
+            type: "combat",
+            emoji: "⛄"
         },
         "TURTLE": {
             head: "/head/212b58c841b394863dbcc54de1c2ad2648af8f03e648988c1f9cef0bc20ee23c",
-            type: "combat"
+            type: "combat",
+            emoji: "🐢"
         },
         "BEE": {
             head: "/head/7e941987e825a24ea7baafab9819344b6c247c75c54a691987cd296bc163c263",
-            type: "farming"
+            type: "farming",
+            emoji: "🐝"
         },
         "ENDER_DRAGON": {
             head: "/head/aec3ff563290b13ff3bcc36898af7eaa988b6cc18dc254147f58374afe9b21b9",
-            type: "combat"
+            type: "combat",
+            emoji: "🐲"
         },
         "GUARDIAN": {
             head: "/head/221025434045bda7025b3e514b316a4b770c6faa4ba9adb4be3809526db77f9d",
-            type: "combat"
+            type: "combat",
+            emoji: "🐡"
         },
         "SQUID": {
             head: "/head/01433be242366af126da434b8735df1eb5b3cb2cede39145974e9c483607bac",
-            type: "fishing"
+            type: "fishing",
+            emoji: "🦑"
         },
         "GIRAFFE": {
             head: "/head/176b4e390f2ecdb8a78dc611789ca0af1e7e09229319c3a7aa8209b63b9",
-            type: "foraging"
-        }
+            type: "foraging",
+            emoji: "🦒"
+        },
+        "ELEPHANT": {
+            head: "/head/7071a76f669db5ed6d32b48bb2dba55d5317d7f45225cb3267ec435cfa514",
+            type: "farming",
+            emoji: "🐘"
+        },
+        "MONKEY": {
+            head: "/head/13cf8db84807c471d7c6922302261ac1b5a179f96d1191156ecf3e1b1d3ca",
+            type: "foraging",
+            emoji: "🐒"
+        },
+        "SPIDER": {
+            head: "/head/cd541541daaff50896cd258bdbdd4cf80c3ba816735726078bfe393927e57f1",
+            type: "combat",
+            emoji: "🕷️"
+        },
+        "ENDERMITE": {
+            head: "/head/5a1a0831aa03afb4212adcbb24e5dfaa7f476a1173fce259ef75a85855",
+            type: "mining",
+            emoji: "🐛"
+        },
+        "GHOUL": {
+            head: "/head/87934565bf522f6f4726cdfe127137be11d37c310db34d8c70253392b5ff5b",
+            type: "combat",
+            emoji: "🧟"
+        },
+        "JELLYFISH": {
+            head: "/head/913f086ccb56323f238ba3489ff2a1a34c0fdceeafc483acff0e5488cfd6c2f1",
+            type: "alchemy",
+            emoji: "🎐"
+        },
+        "PIG": {
+            head: "/head/621668ef7cb79dd9c22ce3d1f3f4cb6e2559893b6df4a469514e667c16aa4",
+            type: "farming",
+            emoji: "🐷"
+        },
+        "ROCK": {
+            head: "/head/cb2b5d48e57577563aca31735519cb622219bc058b1f34648b67b8e71bc0fa",
+            type: "mining",
+            emoji: "🗿"
+        },
+        "SKELETON": {
+            head: "/head/fca445749251bdd898fb83f667844e38a1dff79a1529f79a42447a0599310ea4",
+            type: "combat",
+            emoji: "💀"
+        },
+        "ZOMBIE": {
+            head: "/head/56fc854bb84cf4b7697297973e02b79bc10698460b51a639c60e5e417734e11",
+            type: "combat",
+            emoji: "🧟"
+        },
+        "DOLPHIN": {
+            head: "/head/cefe7d803a45aa2af1993df2544a28df849a762663719bfefc58bf389ab7f5",
+            type: "fishing",
+            emoji: "🐬"
+        },
+        "BABY_YETI": {
+            head: "/head/ab126814fc3fa846dad934c349628a7a1de5b415021a03ef4211d62514d5",
+            type: "fishing",
+            emoji: "❄️"
+        },
+        "GOLEM": {
+            head: "/head/89091d79ea0f59ef7ef94d7bba6e5f17f2f7d4572c44f90f76c4819a714",
+            type: "combat",
+            emoji: "🗿"
+        },
+        "HOUND": {
+            head: "/head/b7c8bef6beb77e29af8627ecdc38d86aa2fea7ccd163dc73c00f9f258f9a1457",
+            type: "combat",
+            emoji: "👹"
+        },
+        "TARANTULA": {
+            head: "/head/8300986ed0a04ea79904f6ae53f49ed3a0ff5b1df62bba622ecbd3777f156df8",
+            type: "combat",
+            emoji: "🕸️"
+        },
+        
     },
 
     // Player stats on a completely new profile
@@ -383,6 +529,11 @@ module.exports = {
     mob_names: {
         unburried_zombie: "Crypt Ghoul",
         zealot_enderman: "Zealot",
+        invisible_creeper: "Sneaky Creeper",
+        generator_ghast: "Minion Ghast",
+        generator_magma_cube: "Minion Magma Cube",
+        generator_slime: "Minion Slime",
+        brood_mother_spider: "Brood Mother"
     },
 
     area_names: {
@@ -397,6 +548,162 @@ module.exports = {
         farming_2: "Mushroom Desert",
         foraging_1: "The Park",
         winter: "Jerry's Workshop"
+    },
+
+    item_tags: {
+        SUPER_COMPACTOR_3000: "sc3000 sc3k",
+        ENCHANTED_LAPIS_LAZULI: "elapis",
+        ENCHANTED_IRON_INGOT: "eiron",
+        ENCHANTED_IRON_BLOCK: "eiron",
+        ENCHANTED_STRING: "estring",
+        ENCHANTED_ROTTEN_FLESH: "eflesh erotten",
+        ENCHANTED_WET_SPONGE: "ewet",
+        ENCHANTED_DIAMOND: "edia",
+        ENCHANTED_DIAMOND_BLOCK: "edb",
+        ENCHANTED_LAVA_BUCKET: "elava",
+        ENCHANTED_GLOWSTONE_DUST: "edust",
+        ENCHANTED_GLOWSTONE: "eblock glow",
+        ENCHANTED_REDSTONE_LAMP: "elamp",
+        ENCHANTED_REDSTONE_DUST: "edust",
+        ENCHANTED_REDSTONE_BLOCK: "eblock red",
+        CATALYST: "cata",
+        SUPERIOR_FRAGMENT: "sup frag",
+        STRONG_FRAGMENT: "frag",
+        PROTECTOR_FRAGMENT: "frag",
+        WISE_FRAGMENT: "frag",
+        YOUNG_FRAGMENT: "frag",
+        OLD_FRAGMENT: "old frag",
+        UNSTABLE_FRAGMENT: "frag",
+        ENCHANTED_GOLD: "egold ingot",
+        ENCHANTED_GOLD_BLOCK: "egold",
+        ENCHANTED_COAL: "ecoal",
+        ENCHANTED_COAL_BLOCK: "ecoal",
+        ENCHANTED_COBBLESTONE: "cobble ecobble",
+        INK_SACK: "eink",
+        TARANTULA_WEB: "tara",
+        ENCHANTED_POTATO: "epotato",
+        ENCHANTED_SLIME_BALL: "eslime",
+        ENCHANTED_SLIME_BLOCK: "eslime",
+        ENCHANTED_BIRCH_LOG: "ebirch",
+        ENCHANTED_SUGAR: "esugar",
+        ENCHANTED_MELON: "emelon",
+        ENCHANTED_BLAZE_ROD: "erod",
+        ENCHANTED_CAKE: "ecake",
+        ENCHANTED_SNOW_BLOCK: "esnow",
+        ENCHANTED_CACTUS_GREEN: "ecactus",
+        ENCHANTED_COOKIE: "ecookie",
+        ENCHANTED_SAND: "esand",
+        ENCHANTED_COCOA: "ecocoa",
+        ENCHANTED_LEATHER: "eleather",
+        ENCHANTED_SPONGE: "esponge",
+        ENCHANTED_GRILLED_PORK: "epork",
+        ENCHANTED_DARK_OAK_LOG: "edoak",
+        ENCHANTED_ACACIA_LOG: "eacacia",
+        ENCHANTED_SPRUCE_LOG: "espruce",
+        ENCHANTED_RAW_CHICKEN: "echicken",
+        ENCHANTED_WATER_LILY: "elily",
+        ENCHANTED_SUGAR_CANE: "ecane",
+        ENCHANTED_FERMENTED_SPIDER_EYE: "eferm",
+        ENCHANTED_JUNGLE_LOG: "ejungle",
+        ENCHANTED_OAK_LOG: "eoak",
+        ENCHANTED_CLAY_BALL: "eclay",
+        REVENANT_VISCERA: "rev",
+        ENCHANTED_HAY_BLOCK: "ehay",
+        ENCHANTED_PAPER: "epaper",
+        ENCHANTED_BONE: "ebone",
+        ENCHANTED_RABBIT_FOOT: "efoot",
+        ENCHANTED_ICE: "eice",
+        ENCHANTED_OBSIDIAN: "eobsidian",
+        ENCHANTED_QUARTZ: "equartz",
+        ENCHANTED_RAW_FISH: "efish",
+        ENCHANTED_RAW_BEEF: "ecow",
+        ENCHANTED_FEATHER: "efeather",
+        ENCHANTED_CARROT: "ecarrot",
+        ENCHANTED_PUMPKIN: "epumpkin",
+        ENCHANTED_COOKED_FISH: "ecooked",
+        ENCHANTED_MAGMA_CREAM: "emagma ecream",
+        ENCHANTED_COOKED_MUTTON: "emutton",
+        ENCHANTED_BLAZE_POWDER: "eblaze",
+        ENCHANTED_BAKED_POTATO: "ebaked"
+    },
+
+    bag_size: {
+        talisman_bag: {
+            collection: 'REDSTONE',
+            sizes: [
+                {
+                    tier: 2,
+                    slots: 3
+                },
+                {
+                    tier: 7,
+                    slots: 9
+                },
+                {
+                    tier: 9,
+                    slots: 15
+                },
+                {
+                    tier: 10,
+                    slots: 21
+                },
+                {
+                    tier: 11,
+                    slots: 27
+                },
+                {
+                    tier: 12,
+                    slots: 33
+                },
+                {
+                    tier: 13,
+                    slots: 39
+                }
+            ]
+        },
+        potion_bag: {
+            collection: 'NETHER_STALK',
+            sizes: [
+                {
+                    tier: 2,
+                    slots: 9
+                },
+                {
+                    tier: 5,
+                    slots: 18
+                },
+                {
+                    tier: 8,
+                    slots: 27
+                }
+            ]
+        },
+        fishing_bag: {
+            collection: 'RAW_FISH',
+            sizes: [
+                {
+                    tier: 3,
+                    slots: 9
+                },
+                {
+                    tier: 7,
+                    slots: 18
+                },
+                {
+                    tier: 9,
+                    slots: 27
+                }
+            ]
+        },
+        quiver: {
+            collection: 'STRING',
+            sizes: [
+                {
+                    tier: 3,
+                    slots: 27
+                }
+            ]
+        }
     },
 
     // Object with fairy soul, skill, slayer bonuses and enchantment bonuses
@@ -637,7 +944,7 @@ module.exports = {
                 speed: 0
             },
             200: {
-                health: 23,
+                health: 22,
                 defense: 2,
                 strength: 2,
                 speed: 1
@@ -843,6 +1150,9 @@ module.exports = {
     },
 
     talisman_upgrades: {
+        WOLF_TALISMAN: [
+            'WOLF_RING'
+        ],
         RING_POTION_AFFINITY: [
             'ARTIFACT_POTION_AFFINITY'
         ],
@@ -921,6 +1231,13 @@ module.exports = {
         ],
         CRACKED_PIGGY_BANK: [
             'PIGGY_BANK'
+        ],
+        SPEED_TALISMAN: [
+            'SPEED_RING',
+            'SPEED_ARTIFACT'
+        ],
+        SPEED_RING: [
+            'SPEED_ARTIFACT'
         ]
     },
 

@@ -2,12 +2,17 @@ const fs = require('fs-extra');
 const path = require('path');
 const mm = require('micromatch');
 const objectPath = require('object-path');
+const util = require('util');
+const apng2gif = require("apng2gif-bin");
 const escapeRegExp = require('lodash.escaperegexp');
 const sharp = require('sharp');
 const { createCanvas, loadImage } = require('canvas');
 const mcData = require("minecraft-data")("1.8.9");
 const UPNG = require('upng-js');
 const RJSON = require('relaxed-json');
+
+const child_process = require("child_process");
+const execFile = util.promisify(child_process.execFile);
 
 const NORMALIZED_SIZE = 128;
 
@@ -44,14 +49,19 @@ function getFrame(src, frame){
 let resourcePacks = [];
 
 async function init(){
-     for(const pack of await fs.readdir(RESOURCE_PACK_FOLDER)){
-        let basePath = path.resolve(RESOURCE_PACK_FOLDER, pack);
-        let config = require(path.resolve(basePath, 'config.json'));
+    for(const pack of await fs.readdir(RESOURCE_PACK_FOLDER)){
+        const basePath = path.resolve(RESOURCE_PACK_FOLDER, pack);
 
-        resourcePacks.push({
-            basePath,
-            config
-        });
+        try{
+            const config = require(path.resolve(basePath, 'config.json'));
+
+            resourcePacks.push({
+                basePath,
+                config
+            });
+        }catch(e){
+            console.log("Couldn't find config for resource pack", pack);
+        }
     }
 
     resourcePacks = resourcePacks.sort((a, b) => a.config.priority - b.config.priority);
@@ -342,6 +352,7 @@ async function init(){
                     const apng = UPNG.encode(pngFrames, NORMALIZED_SIZE, NORMALIZED_SIZE, 0, pngDelays);
 
                     await fs.writeFile(textureFile, Buffer.from(apng));
+                    await execFile(apng2gif, [textureFile, textureFile.replace('.png', '.gif')]);
                 }
             }
 
@@ -358,21 +369,30 @@ readyPromise.then(() => {
 
 module.exports = {
     ready: false,
-    getTexture: async item => {
+    getTexture: async (item, ignoreId = false, packIds) => {
         if(!module.exports.ready)
             await readyPromise;
 
         let outputTexture = { weight: -9999 };
 
-        for(const pack of resourcePacks){
+        let _resourcePacks = resourcePacks;
+
+        packIds = packIds !== undefined ? packIds.split(",") : [];
+
+        if(packIds.length > 0)
+            _resourcePacks = _resourcePacks.filter(a => packIds.includes(a.config.id));
+
+        _resourcePacks = _resourcePacks.sort((a, b) => packIds.indexOf(a) - packIds.indexOf(b));
+
+        for(const pack of _resourcePacks){
             if('weight' in outputTexture)
                 outputTexture.weight = -9999;
 
             for(const texture of pack.textures){
-                if(texture.id != item.id)
+                if(ignoreId === false && texture.id != item.id)
                     continue;
 
-                if('damage' in texture && texture.damage != item.Damage)
+                if(ignoreId === false && 'damage' in texture && texture.damage != item.Damage)
                     continue;
 
                 let matches = 0;

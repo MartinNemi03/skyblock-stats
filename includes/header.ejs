@@ -6,16 +6,14 @@
         document.getElementById('not_supported').className = 'show-not-supported';
     }
 </script>
-<header>
+<header class="page-<%= page %>">
     <a href="/" id="site_name">sky.lea.moe</a>
     <div class="social-button" id="info_button" onclick="toggleInfo()">About</div>
     <% if('donations' in extra){ %>
         <a title="Patreon" target="_blank" rel="nofollow" href="https://patreon.com/LeaPhant" class="social-button patreon"><%= extra.donations.patreon %> Patrons<div class="social-icon"></div></a>
         <a title="Ko-fi" target="_blank" rel="nofollow" href="https://ko-fi.com/leaphant" class="social-button ko-fi"><%= extra.donations.kofi %>x Ko-fi<div class="social-icon"></div></a>
     <% } %>
-    <% if(page == 'stats'){ %>
-        <div id="search_user"><input placeholder="Enter username" type="text" id="inp_search_user"></input><a href="#" id="btn_search_user"></a></div>
-    <% } %>
+    <div id="search_user"><input placeholder="Enter username" <% if(page == 'index'){ %>tabindex="-1"<% } %> type="text" id="inp_search_user"></input><a href="/random/stats" <% if(page == 'index'){ %>tabindex="-1"<% } %> id="btn_search_user"></a></div>
 </header>
 <div id="info_box">
     <div onclick="toggleInfo()" id="info_close"></div>
@@ -34,6 +32,7 @@
             <li>Player Heads: <a rel="nofollow" href="https://hypixel.net/forums/skyblock.157/" target="_blank">SkyBlock</a> by <span class="name">Hypixel</span>.</li>
             <li>Background Resource Pack: <a rel="nofollow" href="https://www.planetminecraft.com/texture_pack/16x132-dandelion-cute-and-swirly/" target="_blank">Dandelion</a> by <span class="name">Steelfeathers</span>.</li>
             <li>Background Shaders: <a rel="nofollow" href="https://sildurs-shaders.github.io/" target="_blank">Sildur's Vibrant Shaders</a> by <span class="name">Sildur</span>.</li>
+            <li>Emojis: <a rel="nofollow" href="https://twemoji.twitter.com/" target="_blank">Twemoji</a> by <span class="name">Twitter</span>.</li>
         </ul>
     </div>
 </div>
