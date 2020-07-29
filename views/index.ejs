@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>SkyBlock Stats</title>
+    <title>sky.lea.moe</title>
     <meta name="description" content="A beautiful site for sharing your SkyBlock profile 🌹">
     <link rel="shortcut icon" href="/resources/img/logo_square.png" type="image/png">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <meta property="og:image" content="/resources/img/logo_square.png">
     <meta property="og:title" content="SkyBlock Stats">
     <meta property="og:description" content="A beautiful site for sharing your SkyBlock profile 🌹">
@@ -36,8 +37,8 @@
             <div id="enter_player_box">
                 <p>Show SkyBlock stats for</p>
                 <input <% if(player){ %> value="<%= player %>" <% }%> id="inp_enter_username" type="text" placeholder="Enter username">
-                <a href="<% if(player){ %>/stats/<%= player %><% }else{ %>/random/stats<% } %>" id="goto_target_username">Show me</a>
-                <p>or take me to a <a href="/random/stats">random profile</a>.</p>
+                <a href="<% if(player){ %>/stats/<%= player %><% }else{ %>#<% } %>" id="goto_target_username">Show me</a>
+                <!--<p>or take me to a <a href="/random/stats">random profile</a>.</p>-->
             </div>
         </div>
         <div id="error_box_wrapper" <% if(error){ %>class="show-error"<% } %>>
@@ -88,13 +89,13 @@
                 if(playerName)
                     inputSearchUser.value = playerName;
 
-                if(playerName.trim().length == 0)
-                    document.querySelector('#goto_target_username').href = '/random/stats';
-
-                if(e.keyCode == 13)
+                if(e.keyCode == 13 && playerName.trim().length > 0)
                     document.location = '/stats/' + playerName;
                 else
                     document.querySelector('#goto_target_username').href = '/stats/' + playerName;
+
+                if(playerName.trim().length == 0)
+                    document.querySelector('#goto_target_username').href = '#';
             }
 
             targetUsername.addEventListener('keyup', updateUserTarget);

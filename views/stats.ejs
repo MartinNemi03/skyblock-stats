@@ -1,6 +1,8 @@
 <%
-const rarityOrder = ['special', 'legendary', 'epic', 'rare', 'uncommon', 'common'];
+const rarityOrder = ['special', 'mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common'];
 const slayerOrder = ['zombie', 'spider', 'wolf'];
+
+const UNIQUE_ACCESSORIES = 52;
 
 const statSuffix = {
     health: '',
@@ -10,7 +12,11 @@ const statSuffix = {
     speed: '%',
     crit_chance: '%',
     crit_damage: '%',
-    intelligence: ''
+    intelligence: '',
+    sea_creature_chance: '%',
+    magic_find: '',
+    pet_luck: '',
+    bonus_attack_speed: '%'
 };
 
 const statShort = {
@@ -21,7 +27,11 @@ const statShort = {
     speed: 'Spd',
     crit_chance: 'CC',
     crit_damage: 'CD',
-    intelligence: 'Int'
+    intelligence: 'Int',
+    sea_creature_chance: 'ScC',
+    magic_find: 'MF',
+    pet_luck: 'PL',
+    bonus_attack_speed: 'Atk'
 };
 
 const skillItems = {
@@ -36,7 +46,7 @@ const skillItems = {
     runecrafting: 'icon-378_0'
 };
 
-const MAX_MAGIC_FIND = 1.89;
+const MAX_MAGIC_FIND = 2.00;
 
 const romanize = num => {
 	if (!+num)
@@ -702,17 +712,22 @@ getStats = items => {
     return stats;
 }
 
-const getBonus = stats => {
+const getBonus = (stats, prefix) => {
     const statsNotZero = Object.keys(stats).filter(a => stats[a] > 0 && a != 'effective_health');
 
     if(statsNotZero.length == 0)
         return;
 
+    %>
+    <%- prefix %>
+    <span class="stat-name">Bonus: </span>
+    <%
+
     for(const [index, stat] of statsNotZero.entries()){
         if(stats[stat] == 0)
             continue;
         %>
-        <span style="margin-left: 2px; margin-right: 2px;" class="stat-name color-<%= stat.replace("_", "-") %>"><%= stats[stat].toLocaleString() %><%= statSuffix[stat] %> <%= statShort[stat] %></span>
+        <span style="margin-left: 2px; margin-right: 2px;" class="stat-name color-<%= stat.replace(/\_/g, "-") %>"><%= stats[stat].toLocaleString() %><%= statSuffix[stat] %> <%= statShort[stat] %></span>
         <% if(index < statsNotZero.length - 1){ %><strong style="opacity: 0.6">//</strong><% } %>
     <% }
 }
@@ -745,8 +760,9 @@ const itemIcon = (item, classes) => { %>
 
 const inventorySlot = item => { %>
     <div class="inventory-slot">
-        <% if(Object.keys(item).length > 1){ %>
-        <div class="rich-item inventory-item" data-item-index="<%= item.item_index %>">
+        <% if(Object.keys(item).length > 2){ %>
+        <div class="rich-item inventory-item" data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>">
+            <div class="piece-hover-area"></div>
             <% itemIcon(item, ['piece-icon']); %>
             <% if(item.Count != 1){ %><div class="item-count"><%= item.Count %></div><% } %>
         </div>
@@ -755,9 +771,9 @@ const inventorySlot = item => { %>
 <% };
 
 const skill_component = (skill, icon, level) => { %>
-    <div class="skill xp-skill">
-        <div class="skill-icon"><div class="item-icon <%= icon %>"></div></div>
-        <div class="skill-name"><%= skill %> <span class="skill-level"><%= level.level %></span></div>
+    <div class="skill xp-skill <%= level.level == level.maxLevel ? 'maxed-skill' : ''%>">
+        <div class="skill-icon"><div class="item-icon <%= icon %>"></div><% if(level.level == level.maxLevel){ %><div class="piece-shine"></div><% } %></div>
+        <div class="skill-name"><%= skill %> <span class="skill-level"><%= level.level >= 0 ? level.level : '?' %></span></div>
         <div class="skill-bar" data-skill="<%= skill %>">
             <div class="skill-progress-bar" style="width: <%= level.level == level.maxLevel ? 100 : level.progress * 100 %>%"></div>
             <% if('runecrafting' in calculated.levels){ %>
@@ -772,13 +788,18 @@ const skill_component = (skill, icon, level) => { %>
 const stat_component = stat => {
     const bonusStats = stats[stat.name] - calculated.base_stats[stat.name]
     %>
-    <div data-stat="<%= stat.name %>" class="basic-stat stat-<%= stat.name.replace("_", "-") %>">
+    <div data-stat="<%= stat.name %>" class="basic-stat stat-<%= stat.name.replace(/\_/g, "-") %>">
         <span data-tippy-content="
-        <span class='stat-name'>Base <%= helper.titleCase(stat.name.replace("_", " ")) %>: </span><span class='stat-value'><%= calculated.base_stats[stat.name].toLocaleString() %><%= stat.suffix || '' %></span>
-        <div class='tippy-explanation'><%= stat.baseExplanation %></div>
-        <span class='stat-name'>Bonus <%= helper.titleCase(stat.name.replace("_", " ")) %>: </span><span class='stat-value'><%= bonusStats > 0 ? '+' : '' %><%= bonusStats.toLocaleString() %><%= stat.suffix || '' %></span>
-        <div class='tippy-explanation'>Additional bonuses from Armor, held items and Accessories.</div>
-        "><span class="stat-name"><%= helper.titleCase(stat.name.replace("_", " ")) %> </span><span class="stat-value"><%= stats[stat.name].toLocaleString() %><%= stat.suffix || '' %></span></span></div>
+        <span class='stat-name'>Base <%= helper.titleCase(stat.name.replace(/\_/g, " ")) %>: </span><span class='stat-value'><%= calculated.base_stats[stat.name].toLocaleString() %><%= stat.suffix || '' %></span>
+        <div class='tippy-explanation'><% if(stat.baseExplanation){ %><%= stat.baseExplanation %><% } %></div><br>
+        <span class='stat-name'>Bonus <%= helper.titleCase(stat.name.replace(/\_/g, " ")) %>: </span><span class='stat-value'><%= bonusStats > 0 ? '+' : '' %><%= bonusStats.toLocaleString() %><%= stat.suffix || '' %></span>
+        <div class='tippy-explanation'>Additional bonuses from Armor, held items, Accessories and active Pets.</div>
+        <% if(Array.isArray(stat.extraStats)){
+            for(const extraStat of stat.extraStats){ %>
+        <br><span class='stat-name'><%= extraStat.stat %>: </span><span class='stat-value'><%= extraStat.value.toLocaleString() %><%= extraStat.suffix || '' %></span>
+        <div class='tippy-explanation'><% if(stat.baseExplanation){ %><%= extraStat.explanation %><% } %></div>
+        <% }} %>
+        "><span class="stat-name"><%= stat.prettyName || helper.titleCase(stat.name.replace(/\_/g, " ")) %> </span><span class="stat-value"><%= stats[stat.name].toLocaleString() %><%= stat.suffix || '' %></span></span></div>
 <% };
 
 let description = "";
@@ -787,7 +808,7 @@ if('levels' in calculated){
     let stats = calculated.stats;
 
     if(items.highest_rarity_sword)
-        stats = calculated.weapon_stats[items.highest_rarity_sword.item_index];
+        stats = calculated.weapon_stats[items.highest_rarity_sword.itemId];
 
     description += `❤️ ${stats.health} 🛡️ ${stats.defense} 💪 ${stats.strength} 🌀 ${stats.crit_chance}% ☠️ ${stats.crit_damage}%\n\n`;
 }
@@ -816,7 +837,8 @@ const skillEmojis = {
     "fishing": "🎣",
     "foraging": "🌳",
     "mining": "⛏️",
-    "runecrafting": "✨"
+    "runecrafting": "✨",
+    "taming": "🦴"
 };
 
 const slayerEmojis = {
@@ -866,7 +888,7 @@ if(calculated.slayer_coins_spent.total > 0){
 }
 
 if(calculated.average_level)
-    description += `⚒ Avg Skill Level: ${calculated.average_level.toFixed(1)} `;
+    description += `⚒ Avg Skill Level: ${Math.floor(calculated.average_level * 10) / 10} `;
 
 description += `💰 Purse: ${helper.formatNumber(calculated.purse, true)} Coins`;
 
@@ -897,13 +919,13 @@ twitterDescription += '. Click to view more stats!'
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title><%- calculated.display_name %><% if(calculated.display_emoji){ %> <%- calculated.display_emoji %><% } %> | SkyBlock Stats</title>
+    <title><%- calculated.display_name %><% if(calculated.display_emoji){ %> <%- calculated.display_emoji %><% } %> | sky.lea.moe</title>
     <meta name="description" content="<%= metaDescription %>">
-    <link rel="shortcut icon" href="https://visage.surgeplay.com/face/32/<%- calculated.uuid %>" type="image/png">
+    <link rel="shortcut icon" href="https://crafatar.com/avatars/<%- calculated.uuid %>?size=32&overlay" type="image/png">
     <meta property="og:type" content="website">
     <meta property="og:title" content="<%- calculated.display_name %><% if(calculated.display_emoji){ %> <%- calculated.display_emoji %><% } %> (<%= calculated.profile.cute_name %>)">
-    <meta property="og:image" content="https://visage.surgeplay.com/face/256/<%- calculated.uuid %>">
-    <meta property="twitter:image" content="https://visage.surgeplay.com/face/256/<%- calculated.uuid %>">
+    <meta property="og:image" content="https://crafatar.com/avatars/<%- calculated.uuid %>?size=256&overlay">
+    <meta property="twitter:image" content="https://crafatar.com/avatars/<%- calculated.uuid %>?size=256&overlay">
     <meta property="og:description" content="<%= description %>">
     <meta property="twitter:description" content="<%= twitterDescription %>">
 <%- include('../includes/resources') %>
@@ -922,8 +944,8 @@ twitterDescription += '. Click to view more stats!'
         <div class="item-lore"></div>
         <div class="backpack-contents"></div>
     </div>
-    <div id="stats_display">
-        <div id="player_model" style="background-image: url(https://visage.surgeplay.com/full/832/<%= calculated.uuid %>)"></div>
+    <div id="skin_display">
+        <div id="player_model"></div>
     </div>
     <div id="wrapper" data-sticky-container>
         <div id="player_profile"><span class="text-stats-for">Stats for</span>
@@ -933,7 +955,7 @@ twitterDescription += '. Click to view more stats!'
                 <% if(calculated.display_emoji){ %><%- extra.twemoji.parse(calculated.display_emoji) %><% } %>
                 <div id="other_players">
                     <% calculated.members.forEach(member => { %>
-                        <a class="goto" href="/stats/<%= member.uuid %>/<%= calculated.profile.profile_id %>"><%= member.display_name %><% if(member.emoji){ %> <%- extra.twemoji.parse(member.emoji) %><% } %></a>
+                        <a class="goto" href="/stats/<%= member.uuid %>/<%= calculated.profile.profile_id %><%= Object.keys(req.query).length > 0 ? '?' + new URLSearchParams(req.query).toString() : '' %>"><%= member.display_name %><% if(member.emoji){ %> <%- extra.twemoji.parse(member.emoji) %><% } %><div class="goto-last-played"><%= 'last_updated' in member ? member.last_updated.text : '' %></div></a>
                     <% }); %>
                 </div>
             </div><span class="text-on"> on </span><div tabindex="2" id="stats_for_profile">
@@ -941,7 +963,7 @@ twitterDescription += '. Click to view more stats!'
                 <div id="other_profiles">
                     <% for(let profile_id in calculated.profiles){ %>
                         <% let _profile = calculated.profiles[profile_id]; %>
-                        <a class="goto" href="/stats/<%= calculated.uuid %>/<%= _profile.profile_id %>"><%= _profile.cute_name %></a>
+                        <a class="goto" href="/stats/<%= calculated.uuid %>/<%= _profile.profile_id %><%= Object.keys(req.query).length > 0 ? '?' + new URLSearchParams(req.query).toString() : '' %>"><%= _profile.cute_name %><div class="goto-last-played"><%= 'last_updated' in _profile ? _profile.last_updated.text : '' %></div></a>
                     <% } %>
                 </div>
             </div>
@@ -970,14 +992,15 @@ twitterDescription += '. Click to view more stats!'
                 <a href="https://skyblock.matdoes.dev/profile/<%= calculated.display_name %>/<%= calculated.profile.cute_name == 'Deleted' ? calculated.profile.profile_id : calculated.profile.cute_name %>" target="_blank" rel="nofollow" class="additional-player-stat external-link">matdoes.dev</a>
                 <a href="https://auctions.craftlink.xyz/players/<%= calculated.uuid %>" target="_blank" rel="nofollow" class="additional-player-stat external-link">HyAuctions</a>
                 <div id="additional_socials">
-                    <% if('DISCORD' in calculated.social){ %><div class="additional-player-stat copy-text external-discord external-icon"><%= calculated.social.DISCORD %></div><% } %>
+                    <div data-copy-text="<%= calculated.uuid %>" class="copy-text additional-player-stat">Copy UUID</div>
+                    <% if('DISCORD' in calculated.social){ %><div data-copy-text="<%= calculated.social.DISCORD %>" class="additional-player-stat copy-text external-discord external-icon"><%= calculated.social.DISCORD %></div><% } %>
                     <% if('TWITTER' in calculated.social){ %><a data-tippy-content="Twitter" href="<%= calculated.social.TWITTER %>" target="_blank" rel="nofollow" class="additional-player-stat external-link external-icon external-twitter"></a><% } %>
                     <% if('YOUTUBE' in calculated.social){ %><a data-tippy-content="YouTube" href="<%= calculated.social.YOUTUBE %>" target="_blank" rel="nofollow" class="additional-player-stat external-link external-icon external-youtube"></a><% } %>
                     <% if('INSTAGRAM' in calculated.social){ %><a data-tippy-content="Instagram" href="<%= calculated.social.INSTAGRAM %>" target="_blank" rel="nofollow" class="additional-player-stat external-link external-icon external-instagram"></a><% } %>
                     <% if('TWITCH' in calculated.social){ %><a data-tippy-content="Twitch" href="<%= calculated.social.TWITCH %>" target="_blank" rel="nofollow" class="additional-player-stat external-link external-icon external-twitch"></a><% } %>
                     <% if('MIXER' in calculated.social){ %><a data-tippy-content="Mixer" href="<%= calculated.social.MIXER %>" target="_blank" rel="nofollow" class="additional-player-stat external-link external-icon external-mixer"></a><% } %>
                     <% if('HYPIXEL' in calculated.social){ %><a data-tippy-content="Hypixel Forums" href="<%= calculated.social.HYPIXEL %>" target="_blank" rel="nofollow" class="additional-player-stat external-link external-icon external-hypixel"></a><% } %>
-                    <% if(Object.keys(calculated.social).length > 0){ %><div class="additional-player-stat" id="reveal_socials"></div><% } %>
+                    <div class="additional-player-stat" id="reveal_socials"></div>
                 </div>
             </div>
         </div>
@@ -985,31 +1008,43 @@ twitterDescription += '. Click to view more stats!'
             <%
                 let stats = Object.assign({}, calculated.stats);
                 let sword = items.weapons.slice().sort((a, b) => a.item_index - b.item_index);
+                let rod = items.rods.slice().sort((a, b) => a.item_index - b.item_index);
 
                 if(items.highest_rarity_sword)
                     sword = [items.highest_rarity_sword];
 
+                if(items.highest_rarity_rod)
+                    rod = [items.highest_rarity_rod];
+
                 if(sword.length > 0)
-                    stats = calculated.weapon_stats[sword[0].item_index];
+                    stats = calculated.weapon_stats[sword[0].itemId];
+
+                if(rod.length > 0)
+                    stats['sea_creature_chance'] = calculated.weapon_stats[rod[0].itemId]['sea_creature_chance'];
             %>
 
             <div id="base_stats_container">
                 <%- stat_component({
                     name: 'health',
-                    baseExplanation: "Increased by collecting Fairy Souls, leveling your Farming and Fishing skills and leveling up in Zombie or Wolf Slayer."
+                    baseExplanation: "Increased by collecting Fairy Souls, leveling your Farming and Fishing skills and leveling up in Zombie or Wolf Slayer.",
                 }); %>
 
                 <%- stat_component({
                     name: 'defense',
-                    baseExplanation: "Increased by collecting Fairy Souls and leveling your Mining skill."
+                    baseExplanation: "Increased by collecting Fairy Souls and leveling your Mining skill.",
+                    extraStats: [
+                        {
+                            stat: 'Damage Reduction',
+                            value: (stats.defense / (stats.defense + 100) * 100).toFixed(1),
+                            suffix: '%'
+                        },
+                        {
+                            stat: 'Effective Health',
+                            value: stats.effective_health,
+                            explanation: 'Effective Health based on Health + Defense.<br>→ Formula: Health * (1 + Defense / 100)'
+                        }
+                    ]
                 }); %>
-
-                <div data-stat="effective_health" class="basic-stat stat-effective-health">
-                    <span data-tippy-content="
-                        Effective Health based on Health + Defense.
-                        <div class='tippy-explanation'>→ Formula: Health * (1 + Defense / 100)</div>
-                    "><span class="stat-name">Effective HP </span><span class="stat-value"><%= stats.effective_health.toLocaleString() %></span></span>
-                </div>
 
                 <%- stat_component({
                     name: 'strength',
@@ -1035,14 +1070,42 @@ twitterDescription += '. Click to view more stats!'
                 }); %>
 
                 <%- stat_component({
+                    name: 'bonus_attack_speed',
+                    prettyName: 'Attack Speed',
+                    suffix: '%',
+                    baseExplanation: null
+                }); %>
+
+                <%- stat_component({
                     name: 'intelligence',
                     baseExplanation: "Increased by leveling your Enchanting and Alchemy skills and completing songs on Melody's Harp."
                 }); %>
 
-                <div id="player_model_mobile" style="background-image: url(https://visage.surgeplay.com/full/832/<%= calculated.uuid %>)"></div>
+                <%- stat_component({
+                    name: 'sea_creature_chance',
+                    prettyName: 'SC Chance',
+                    suffix: '%',
+                    baseExplanation: null
+                }); %>
+
+                <%- stat_component({
+                    name: 'magic_find',
+                    baseExplanation: "Increased by collecting unique pets with high rarities."
+                }); %>
+
+                <%- stat_component({
+                    name: 'pet_luck',
+                    baseExplanation: "Increased by leveling your Taming Skill."
+                }); %>
+                <!--<div data-stat="fairy_souls" class="basic-stat stat-fairy-souls">
+                    <span data-tippy-content="
+                        Collect Fairy Souls to gain Health, Defense, Strength and Speed.</div>
+                    "><span class="stat-name">Fairy Souls </span><span class="stat-value"><%= calculated.fairy_souls.collected %> / <%= calculated.fairy_souls.total %></span></span>
+                </div>-->
+                <div id="skin_display_mobile"></div>
                 <div id="additional_stats_container">
                     <% if(calculated.current_area){ %>
-                    <div class="additional-stat"><span class="stat-name">Current Island: </span><span class="stat-value"><%= calculated.current_area %></span></div>
+                    <div class="additional-stat"><span class="stat-name"><%= calculated.current_area_updated ? 'Current' : 'Last' %> Area: </span><span class="stat-value"><%= calculated.current_area %></span></div>
                     <% } %>
                     <div class="additional-stat"><span data-tippy-content="Last updated on <%= moment(calculated.last_updated.unix).format('D MMMM YYYY HH:mm') %>"><span class="stat-name">Last Updated: </span><span class="stat-value"><%= calculated.last_updated.text %></span></span></div>
                     <div class="additional-stat"><span data-tippy-content="Joined on <%= moment(calculated.first_join.unix).format('D MMMM YYYY HH:mm') %>"><span class="stat-name">Joined: </span><span class="stat-value"><%= calculated.first_join.text %></span></span></div>
@@ -1058,25 +1121,20 @@ twitterDescription += '. Click to view more stats!'
                         <div class='tippy-explanation'>Average skill level over all skills except Carpentry and Runecrafting<% if('runecrafting' in calculated.levels){ %>, includes progress to next level<% } %>.</div>
                         <% if('runecrafting' in calculated.levels){ %><span class='stat-name'>Average Level without progress: </span><span class='stat-value'><%= calculated.average_level_no_progress.toFixed(2) %></span>
                         <div class='tippy-explanation'>Average skill level without including partial level progress.</div><% } %>
-                        "><span class="stat-name">Average Skill Level: </span><span class="stat-value"><%= calculated.average_level.toFixed(1) %></span></span></div>
+                        "><span class="stat-name">Average Skill Level: </span><span class="stat-value"><%= Math.floor(calculated.average_level * 10) / 10 %></span></span></div>
+                        <div class="additional-stat">
+                            <span class="stat-name">Fairy Souls: </span><span class="stat-value"><%= calculated.fairy_souls.collected %> / <%= calculated.fairy_souls.total %></span>
+                        </div>
                     <% } %>
                 </div>
             </div>
 
             <div id="skill_levels_container">
-                <div class="skill">
-                    <div class="skill-icon"><div class="item-icon" style="background: url(/head/b96923ad247310007f6ae5d326d847ad53864cf16c3565a181dc8e6b20be2387) center no-repeat"></div></div>
-                    <div class="skill-name">Fairy Souls <span class="skill-level"><%= calculated.fairy_souls.collected %></span></div>
-                    <div class="skill-bar">
-                        <div class="skill-progress-bar" style="width: <%= calculated.fairy_souls.progress * 100 %>%"></div>
-                        <div class="skill-progress-text"><%= calculated.fairy_souls.collected %> / <%= calculated.fairy_souls.total %> Fairy Souls</div>
-                    </div>
-                </div>
-
                 <%
                     if('levels' in calculated){
                 %>
                     <div id="other_skills">
+                        <%= skill_component('Taming', 'icon-383_0_12', calculated.levels.taming) %>
                         <%= skill_component('Farming', 'icon-294_0', calculated.levels.farming) %>
                         <%= skill_component('Mining', 'icon-274_0', calculated.levels.mining) %>
                         <%= skill_component('Combat', 'icon-272_0', calculated.levels.combat) %>
@@ -1088,7 +1146,7 @@ twitterDescription += '. Click to view more stats!'
                             <%= skill_component('Carpentry', 'icon-58_0', calculated.levels.carpentry) %>
                             <%= skill_component('Runecrafting', 'icon-378_0', calculated.levels.runecrafting) %>
                         <% }else{ %>
-                            <div class="no-access">Skills retrieved from player achievements. <a target="_blank" class="enable-api" href="/resources/video/enable_api.webm">Enable Skills API</a> for more accurate data.</div>
+                            <div class="no-access">Skills from achievements across profiles. <a target="_blank" class="enable-api" href="/resources/video/enable_api.webm">Enable Skills API</a> for more accurate data.</div>
                         <% } %>
                     </div>
                     <div id="show_skills">Show skills</div>
@@ -1145,21 +1203,41 @@ twitterDescription += '. Click to view more stats!'
                         </p>
                     <% } %>
                     <div class="pieces">
-                        <% items.armor.slice().reverse().forEach(item => { %>
-                            <div tabindex="3" data-item-index="<%= item.item_index %>" class="rich-item piece piece-<%= item.rarity %>-bg">
-                                <% if(item.rarity == 'legendary'){ %>
+                        <% for(const item of items.armor.slice().reverse()){ %>
+                            <div tabindex="3" data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>" class="rich-item piece piece-<%= item.rarity %>-bg">
+                                <% if(rarityOrder.indexOf(item.rarity) < 3){ %>
                                     <div class="piece-shine"></div>
                                 <% } %>
                                 <div class="piece-hover-area"></div>
                                 <% itemIcon(item, ['piece-icon']); %>
                             </div>
-                        <% }) %>
+                        <% } %>
                     </div>
                     <p>
-                        <span class="stat-name">Bonus: </span>
                         <%- getBonus(getStats(items.armor)) %>
                     </p>
                 <% } %>
+                <% if(items.wardrobe.length > 0){ %>
+                    <p class="stat-sub-header">Wardrobe</p>
+                    <div class="pieces">
+                    <% for(const set of items.wardrobe){ %>
+                        <div class="wardrobe-set">
+                            <% for(const [index, item] of set.slice().entries()){
+                                if(!item)
+                                    continue;
+                                 %>
+                                <div tabindex="3" data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>" class="rich-item <%= index == 0 ? 'wardrobe-piece' : '' %> piece piece-<%= item.rarity %>-bg">
+                                    <% if(rarityOrder.indexOf(item.rarity) < 3){ %>
+                                        <div class="piece-shine"></div>
+                                    <% } %>
+                                    <div class="piece-hover-area"></div>
+                                    <% itemIcon(item, ['piece-icon']); %>
+                                </div>
+                            <% } %>
+                        </div>
+                    <% } %>
+                <% } %>
+                </div>
             </div>
         </div>
         <% if(!items.no_inventory){ %>
@@ -1174,6 +1252,10 @@ twitterDescription += '. Click to view more stats!'
                         <p class="stat-raw-values">
                             <span class="stat-name">Active Weapon: </span><span class="stat-active-weapon stat-value piece-<%= items.highest_rarity_sword.rarity %>-fg"><%= items.highest_rarity_sword.display_name %></span>
                         </p>
+                        <% }else if(items.weapons.length > 0){ %>
+                        <p class="stat-raw-values">
+                            <span class="stat-name">Active Weapon: </span><span class="stat-active-weapon stat-value piece-common-fg">None</span>
+                        </p>
                         <% } %>
                         <div class="pieces">
                             <%
@@ -1183,10 +1265,10 @@ twitterDescription += '. Click to view more stats!'
                                     sword = [items.highest_rarity_sword];
 
                                 items.weapons.filter(a => !a.hidden).forEach(item => { %>
-                                    <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-index="<%= item.item_index %>" class="rich-item piece
+                                    <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>" class="rich-item piece
                                         <% if(sword.length > 0 && item.backpackIndex === undefined && item.item_index == sword[0].item_index){ %>piece-selected<% } %>
                                         piece-<%= item.rarity %>-bg">
-                                        <% if(item.rarity == 'legendary'){ %>
+                                        <% if(rarityOrder.indexOf(item.rarity) < 3){ %>
                                             <div class="piece-shine"></div>
                                         <% } %>
                                         <div class="piece-hover-area"></div>
@@ -1210,16 +1292,16 @@ twitterDescription += '. Click to view more stats!'
                         <div class="no-access"><%= calculated.display_name %> doesn't have any accessories.</div>
                     <% }else{ %>
                         <p class="stat-raw-values">
-                            <span class="stat-name">Unique Accessories: </span><span class="stat-value"><%= items.talismans.filter(a => a.isUnique).length %> / 47</span><br>
-                            <span class="stat-name">Completion: </span><span class="stat-value"><%= Math.round(items.talismans.filter(a => a.isUnique).length / 47 * 100) %>%</span>
+                            <% max = items.talismans.filter(a => a.isUnique).length >= UNIQUE_ACCESSORIES ? 'golden-text': '' %><span class="stat-name <%= max %>">Unique Accessories: </span><span class="stat-value <%= max %>"><%= items.talismans.filter(a => a.isUnique).length %> / <%= UNIQUE_ACCESSORIES %></span><br>
+                            <span class="stat-name <%= max %>">Completion: </span><span class="stat-value <%= max %>"><%= Math.round(items.talismans.filter(a => a.isUnique).length / UNIQUE_ACCESSORIES * 100) %>%</span>
                         </p>
                         <% if(items.talismans.filter(a => !a.isInactive).length > 0){ %>
                             <div class="accessory-list">
                                 <p class="stat-sub-header" style="margin-bottom: 5px">Active Accessories</p>
                                 <% items.talismans.filter(a => !a.isInactive).forEach(item => { %>
-                                    <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-index="<%= item.item_index %>"
+                                    <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>"
                                     class="rich-item piece piece-<%= item.rarity %>-bg">
-                                        <% if(item.rarity == 'legendary'){ %>
+                                        <% if(rarityOrder.indexOf(item.rarity) < 3){ %>
                                             <div class="piece-shine"></div>
                                         <% } %>
                                         <div class="piece-hover-area"></div>
@@ -1227,8 +1309,7 @@ twitterDescription += '. Click to view more stats!'
                                     </div>
                                 <% }) %>
                                 <p>
-                                <span class="stat-name">Bonus: </span>
-                                <%- getBonus(getStats(items.talismans.filter(a => a.isUnique))) %>
+                                <%- getBonus(getStats(items.talismans.filter(a => a.isUnique && !a.isInactive))) %>
                                 </p>
                             </div>
                         <% } %>
@@ -1236,9 +1317,9 @@ twitterDescription += '. Click to view more stats!'
                             <div class="accessory-list">
                                 <p class="stat-sub-header">Inactive Accessories</p>
                                 <% items.talismans.filter(a => a.isUnique && a.isInactive).forEach(item => { %>
-                                    <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-index="<%= item.item_index %>"
+                                    <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>"
                                     class="rich-item piece piece-<%= item.rarity %>-bg">
-                                        <% if(item.rarity == 'legendary'){ %>
+                                        <% if(rarityOrder.indexOf(item.rarity) < 3){ %>
                                             <div class="piece-shine"></div>
                                         <% } %>
                                         <div class="piece-hover-area"></div>
@@ -1262,14 +1343,26 @@ twitterDescription += '. Click to view more stats!'
                 <div class="stat-header"><span>Pets</span></div>
                 <div class="stat-content">
                     <%
-                        const uniquePets = _.uniq(calculated.pets.map(a => a.type)).length;
+                        const uniquePets = _.uniq(calculated.pets.map(a => a.type));
                         let totalPetXp = 0;
 
                         for(const pet of calculated.pets)
                             totalPetXp += pet.exp;
                     %>
                     <p class="stat-raw-values">
-                        <span class="stat-name">Unique Pets: </span><span class="stat-value"><%= uniquePets %> / <%= Object.keys(constants.pet_data).length %></span><br>
+                        <% max = uniquePets.length >= Object.keys(constants.pet_data).length ? 'golden-text': '' %><span class="stat-name <%= max %>">Unique Pets: </span><span class="stat-value <%= max %>"><%= uniquePets.length %> / <%= Object.keys(constants.pet_data).length %></span><br>
+                        <% max = calculated.petScore >= Math.max(...Object.keys(constants.pet_rewards)) ? 'golden-text' : '' %><span data-tippy-content="
+                        Increase your pet score by collecting unique pets with a high rarity.<br><br>
+                        <table>
+                        <tr><td>10 Score: </td><td><span class='color-magic-find grey-text'>+1 Magic Find</span></td>
+                        <tr><td>25 Score: </td><td><span class='color-magic-find grey-text'>+2 Magic Find</span></td>
+                        <tr><td>50 Score: </td><td><span class='color-magic-find grey-text'>+3 Magic Find</span></td>
+                        <tr><td>75 Score: </td><td><span class='color-magic-find grey-text'>+4 Magic Find</span></td>
+                        <tr><td>100 Score: </td><td><span class='color-magic-find grey-text'>+5 Magic Find</span></td>
+                        <tr><td>130 Score: </td><td><span class='color-magic-find grey-text'>+6 Magic Find</span></td>
+                        <tr><td>175 Score: </td><td><span class='color-magic-find grey-text'>+7 Magic Find</span></td>
+                        </table>
+                        "><span class="stat-name <%= max %>">Pet Score: </span><span class="stat-value <%= max %>"><%= calculated.petScore %></span></span><% if(calculated.pet_score_bonus.magic_find > 0){ %><span class="grey-text color-magic-find"> (+<%= calculated.pet_score_bonus.magic_find %> MF)</span><% } %><br>
                         <span class="stat-name">Total Pet XP: </span><span class="stat-value"><%= helper.formatNumber(totalPetXp, true) %></span>
                     </p>
                     <% for(const [index, pet] of calculated.pets.entries()){
@@ -1280,8 +1373,8 @@ twitterDescription += '. Click to view more stats!'
                             <p></p>
                             <div class="pieces">
                         <% } %>
-                            <div data-pet-index="<%= index %>" class="<%= pet.active ? 'active-pet' : '' %> rich-item piece piece-<%= pet.rarity %>-bg">
-                                <% if(pet.rarity == 'legendary'){ %>
+                            <div data-pet-index="<%= index %>" class="<%= pet.active ? 'active-pet' : '' %> <%= index > 0 || index == 0 && !pet.active ? 'other-pet' : '' %> rich-item piece piece-<%= pet.rarity %>-bg">
+                                <% if(rarityOrder.indexOf(pet.rarity) < 3){ %>
                                     <div class="piece-shine"></div>
                                 <% } %>
                                 <div class="piece-hover-area"></div>
@@ -1290,19 +1383,44 @@ twitterDescription += '. Click to view more stats!'
                                     <div class="other-pet-level">Lvl <%= pet.level.level %></div>
                                 <% } %>
                             </div>
-                        <% if(index == 0 && pet.active) { %>
+                        <% if(index == 0 && pet.active){ %>
                             <div class="active-pet-info">
                                 <div class="pet-name piece-<%= pet.rarity %>-fg"><%= pet.rarity %> <%= pet.display_name %></div>
                                 <div class="pet-level">Level <%= pet.level.level %></div>
                             </div>
                             </div>
+                            <%- getBonus(pet.stats, '<br>') %>
                             <% if(calculated.pets.length > 1){ %>
+                                <div class="stat-sub-container sub-other-pets">
                                 <p class="stat-sub-header">Other Pets</p>
                             <% } %>
                             <div class="pieces">
                         <% }
                     } %>
+                    <% if(calculated.pets.length > 1 && calculated.pets[0].active){ %>
+                        </div>
+                    <% } %>
                     </div>
+                    <% if(calculated.missingPets.length > 0){ %>
+                        <% if(calculated.pets.length == 1){ %>
+                            <br>
+                        <% } %>
+                        <div class="stat-sub-container sub-extendable sub-missing-pets">
+                            <p class="stat-sub-header">Missing Pets</p>
+                            <div class="pieces">
+                            <%
+                                for(const [index, pet] of calculated.missingPets.entries()){
+                                    %>
+                                    <div data-missing-pet-index="<%= index %>" class="rich-item piece piece-<%= pet.rarity %>-bg missing-pet">
+                                        <div class="piece-hover-area"></div>
+                                        <div style='background-image: url("<%= pet.texture_path %>")' class="piece-icon item-icon custom-icon"></div>
+                                    </div>
+                                    <%
+                                }
+                            %>
+                            </div>
+                        </div>
+                    <% } %>
                 </div>
             </div>
         <% } %>
@@ -1316,12 +1434,49 @@ twitterDescription += '. Click to view more stats!'
                     <% }else{ %>
                         <div id="inventory_container">
                             <div id="inventory_header">
-                                <div class="inventory-tab active-inventory" data-inventory-type="inventory">Inventory</div><%
-                                if(items.enderchest.length > 0){ %><div class="inventory-tab" data-inventory-type="enderchest">Ender Chest</div><% }
-                                if(items.talisman_bag.length > 0){ %><div class="inventory-tab" data-inventory-type="talisman_bag">Accessory Bag</div><% }
-                                if(items.potion_bag.length > 0){ %><div class="inventory-tab" data-inventory-type="potion_bag">Potion Bag</div><% }
-                                if(items.fishing_bag.length > 0){ %><div class="inventory-tab" data-inventory-type="fishing_bag">Fishing Bag</div><% }
-                                if(items.quiver.length > 0){ %><div class="inventory-tab" data-inventory-type="quiver">Quiver</div><% } %>
+                                <div class="inventory-header-line"></div>
+                                <div class="inventory-tabs-container">
+                                    <div class="inventory-tab active-inventory" data-inventory-type="inventory">
+                                        <div class="inventory-tab-icon item-icon icon-54_0"></div>
+                                        <div class="inventory-tab-name">Inventory</div>
+                                    </div>
+                                    <%
+
+                                    if(items.enderchest.length > 0){ %>
+                                        <div class="inventory-tab" data-inventory-type="enderchest">
+                                            <div class="inventory-tab-icon item-icon icon-130_0"></div>
+                                            <div class="inventory-tab-name">Ender</div>
+                                        </div>
+                                    <% }
+
+                                    if(items.talisman_bag.length > 0){ %>
+                                        <div class="inventory-tab" data-inventory-type="talisman_bag">
+                                            <div class="inventory-tab-icon item-icon custom-icon" style="background-image: url(/head/961a918c0c49ba8d053e522cb91abc74689367b4d8aa06bfc1ba9154730985ff)"></div>
+                                            <div class="inventory-tab-name">Accs</div>
+                                        </div>
+                                    <% }
+
+                                    if(items.potion_bag.length > 0){ %>
+                                        <div class="inventory-tab" data-inventory-type="potion_bag">
+                                            <div class="inventory-tab-icon item-icon custom-icon" style="background-image: url(/head/9f8b82427b260d0a61e6483fc3b2c35a585851e08a9a9df372548b4168cc817c)"></div>
+                                            <div class="inventory-tab-name">Potions</div>
+                                        </div>
+                                    <% }
+
+                                    if(items.fishing_bag.length > 0){ %>
+                                        <div class="inventory-tab" data-inventory-type="fishing_bag">
+                                            <div class="inventory-tab-icon item-icon custom-icon" style="background-image: url(/head/eb8e297df6b8dffcf135dba84ec792d420ad8ecb458d144288572a84603b1631)"></div>
+                                            <div class="inventory-tab-name">Fishies</div>
+                                        </div>
+                                    <% }
+
+                                    if(items.quiver.length > 0){ %>
+                                        <div class="inventory-tab" data-inventory-type="quiver">
+                                            <div class="inventory-tab-icon item-icon custom-icon" style="background-image: url(/head/4cb3acdc11ca747bf710e59f4c8e9b3d949fdd364c6869831ca878f0763d1787)"></div>
+                                            <div class="inventory-tab-name">Quiver</div>
+                                        </div>
+                                    <% } %>
+                                </div>
                             </div>
                             <div class="inventory-view current-inventory" data-inventory-type="inventory">
                                 <% for(let i = 9; i < items.inventory.length; i++){ %>
@@ -1344,22 +1499,6 @@ twitterDescription += '. Click to view more stats!'
             <div class="stat-anchor"></div>
             <div class="stat-header"><span>Fishing</span></div>
             <div class="stat-content">
-                <p class="stat-raw-values">
-                    <span class="stat-name">Items fished: </span><span class="stat-value"><%= calculated.fishing.total.toLocaleString() %></span><br>
-                    <span class="stat-name">Treasures fished: </span><span class="stat-value"><%= calculated.fishing.treasure.toLocaleString() %></span><br>
-                    <span class="stat-name">Large treasures fished: </span><span class="stat-value"><%= calculated.fishing.treasure_large.toLocaleString() %></span><br>
-                    <%
-                    if(calculated.fishing.shredder_fished > 0 && calculated.fishing.shredder_bait > 0){
-                    const baitWasted = calculated.fishing.shredder_bait - calculated.fishing.shredder_fished;
-
-                        %>
-                    <span data-tippy-content='
-                    <span class="stat-name">Fished with Shredder: </span><span class="stat-value"><%= calculated.fishing.shredder_fished.toLocaleString() %></span><br>
-                    <span class="stat-name">Bait used with Shredder: </span><span class="stat-value"><%= calculated.fishing.shredder_bait.toLocaleString() %></span><br>
-                    <% if(baitWasted > 0){ %><span class="stat-name">Bait wasted with Shredder: </span><span class="stat-value"><%= baitWasted.toLocaleString() %> <span class="grey-text">(<%= Math.round(baitWasted / calculated.fishing.shredder_bait * 100) %>%)</span></span><% } %>
-                    '><span class="stat-name">Fished with Shredder: </span><span class="stat-value"><%= calculated.fishing.shredder_fished.toLocaleString() %></span></span><br>
-                    <% } %>
-                </p>
                 <%
                 let totalSeaCreatureKills = 0;
 
@@ -1368,8 +1507,67 @@ twitterDescription += '. Click to view more stats!'
 
                     totalSeaCreatureKills += mobKills.length > 0 ? mobKills[0].amount : 0;
                 }
+                %>
 
-                if(totalSeaCreatureKills > 0){ %>
+                <p class="stat-raw-values">
+                    <span class="stat-name">Items fished: </span><span class="stat-value"><%= calculated.fishing.total.toLocaleString() %></span><br>
+                    <span class="stat-name">Treasures fished: </span><span class="stat-value"><%= calculated.fishing.treasure.toLocaleString() %></span><br>
+                    <span class="stat-name">Large treasures fished: </span><span class="stat-value"><%= calculated.fishing.treasure_large.toLocaleString() %></span><br>
+                    <span class="stat-name">Sea Creatures killed: </span><span class="stat-value"><%= totalSeaCreatureKills.toLocaleString() %></span><br>
+                    <%
+                    if(calculated.fishing.shredder_fished > 0 && calculated.fishing.shredder_bait > 0){
+
+                        %>
+                    <span data-tippy-content='
+                    <span class="stat-name">Fished with Shredder: </span><span class="stat-value"><%= calculated.fishing.shredder_fished.toLocaleString() %></span><br>
+                    <span class="stat-name">Bait used with Shredder: </span><span class="stat-value"><%= calculated.fishing.shredder_bait.toLocaleString() %></span><br>
+                    '><span class="stat-name">Fished with Shredder: </span><span class="stat-value"><%= calculated.fishing.shredder_fished.toLocaleString() %></span></span><br>
+                    <% } %>
+                </p>
+
+                <% if(items.rods.length > 0){ %>
+                    <%- stat_component({
+                        name: 'sea_creature_chance',
+                        prettyName: 'SC Chance',
+                        suffix: '%',
+                        baseExplanation: null
+                    }); %>
+
+                    <p class="stat-sub-header">Fishing Rods</p>
+                    <% if(items.highest_rarity_rod){ %>
+                    <p class="stat-raw-values">
+                        <span class="stat-name">Active Rod: </span><span class="stat-active-rod stat-value piece-<%= items.highest_rarity_rod.rarity %>-fg"><%= items.highest_rarity_rod.display_name %></span>
+                    </p>
+                    <% }else if(items.rods.length > 0){ %>
+                    <p class="stat-raw-values">
+                        <span class="stat-name">Active Rod: </span><span class="stat-active-rod stat-value piece-common-fg">None</span>
+                    </p>
+                    <% } %>
+                    <div class="pieces">
+                        <%
+                            let rod = items.rods.slice().sort((a, b) => a.item_index - b.item_index);
+
+                            if(items.highest_rarity_rod)
+                                rod = [items.highest_rarity_rod];
+
+                            items.rods.filter(a => !a.hidden).forEach(item => { %>
+                                <div tabindex="3" <% if('backpackIndex' in item){ %>data-backpack-index="<%= item.backpackIndex %>" <% } %> data-item-id="<%= item.itemId %>" data-item-index="<%= item.item_index %>" class="rich-item piece
+                                    <% if(rod.length > 0 && item.backpackIndex === undefined && item.item_index == rod[0].item_index){ %>piece-selected<% } %>
+                                    piece-<%= item.rarity %>-bg">
+                                    <% if(rarityOrder.indexOf(item.rarity) < 3){ %>
+                                        <div class="piece-shine"></div>
+                                    <% } %>
+                                    <div class="piece-hover-area"></div>
+                                    <div class="select-rod"></div>
+                                    <% itemIcon(item, ['piece-icon']); %>
+                                </div>
+                        <%
+                            });
+                        %>
+                    </div>
+                <% } %>
+
+                <% if(totalSeaCreatureKills > 0){ %>
                     <p class="stat-sub-header">Sea Creatures</p>
                     <div class="sea-creatures">
                         <% for(const creature of seaCreatures) {
@@ -1457,7 +1655,7 @@ twitterDescription += '. Click to view more stats!'
                                     <% } %>
                                 </div>
                             </div>
-                            <div class="slayer-section-header"><span data-tippy-content="Average drops based on Slayer boss kills. The number ranges from 0% Magic Find to 89% Magic Find.">Your Average Drops</span></div>
+                            <div class="slayer-section-header"><span data-tippy-content="Average drops based on Slayer boss kills. The number ranges from 0% Magic Find to 100% Magic Find.">Your Average Drops</span></div>
                             <div class="slayer-section slayer-drops">
                                 <%
                                 for(const drop of slayerInfo[slayerName].drops){
@@ -1507,11 +1705,11 @@ twitterDescription += '. Click to view more stats!'
                                     </div>
                                 <% } %>
                             </div>
-                            <div class="slayer-section-header"><%= slayerName %> Level <span class="white-text"><%= slayer.level.currentLevel %></span></div>
+                            <% max = slayer.level.currentLevel == slayer.level.maxLevel ? 'golden-text' : '' %><div class="slayer-section-header <%= max %>"><%= slayerName %> Level <span class="white-text <%= max %>"><%= slayer.level.currentLevel %></span></div>
                             <% if(unclaimedRewards){ %>
                                 <div class="slayer-unclaimed"><%= slayer.level.unclaimed ? 'unclaimed slayer rewards!' : '' %></div>
                             <% } %>
-                            <div class="slayer-bar">
+                            <div class="slayer-bar <%= slayer.level.currentLevel == slayer.level.maxLevel ? 'maxed-slayer' : ''%>">
                                 <div class="skill-progress-bar slayer-progress-bar" style="width: <%= slayer.level.currentLevel == slayer.level.maxLevel ? 100 : slayer.level.progress * 100 %>%"></div>
                                 <div class="skill-progress-text slayer-progress-text">
                                     <%= slayer.level.xp.toLocaleString() %><% if(slayer.level.xpForNext != 0){ %> / <%= slayer.level.xpForNext.toLocaleString() %><% } %> XP
@@ -1522,7 +1720,6 @@ twitterDescription += '. Click to view more stats!'
                     </div>
                     <% if(maxSlayerLevel > 0){ %>
                     <p>
-                        <span class="stat-name">Bonus: </span>
                         <%
                         const slayerBonus = Object.assign({}, constants.stat_template);
 
@@ -1547,6 +1744,10 @@ twitterDescription += '. Click to view more stats!'
                 <div class="stat-anchor"></div>
                 <div class="stat-header"><span>Top Kills & Deaths</span></div>
                 <div class="stat-content">
+                    <p class="stat-raw-values">
+                        <span class="stat-name">Total Kills: </span><span class="stat-value"><%= calculated.kills.map(a => a.amount).reduce((a, b) => a + b, 0).toLocaleString() %></span><br>
+                        <span class="stat-name">Total Deaths: </span><span class="stat-value"><%= calculated.deaths.map(a => a.amount).reduce((a, b) => a + b, 0).toLocaleString() %></span>
+                    </p>
                     <div class="kills-deaths-container">
                         <div class="narrow-info-container top-kills">
                             <div class="narrow-info-header">Kills</div>
@@ -1611,9 +1812,9 @@ twitterDescription += '. Click to view more stats!'
                     <div class="external-app-description">Check the next cheapest or fastest Minion upgrades and find out which Minions will earn you the most from Bazaar, for free.</div>
                 </a>
                 <p class="stat-raw-values">
-                    <span class="stat-name">Unique Minions: </span><span class="stat-value"><%= uniqueMinions %> / 572</span><span class="grey-text"> (<%= Math.floor(uniqueMinions / 572 * 100) %>%)</span><br>
-                    <span class="stat-name">Minion Slots: </span><span class="stat-value"><%= calculated.minion_slots.currentSlots %></span><span class="grey-text"> (<%= calculated.minion_slots.toNextSlot %> to next slot)</span><br>
-                    <span class="stat-name">Maxed Minions: </span><span class="stat-value"><%= maxedMinions %> / <%= _.size(constants.minions) %></span><br>
+                    <% max = uniqueMinions == 572 ? 'golden-text' : '' %><span class="stat-name <%= max %>">Unique Minions: </span><span class="stat-value <%= max %>"><%= uniqueMinions %> / 572</span><span class="grey-text"> (<%= Math.floor(uniqueMinions / 572 * 100) %>%)</span><br>
+                    <% max = calculated.minion_slots.currentSlots == 24 ? 'golden-text' : '' %><span class="stat-name <%= max %>">Minion Slots: </span><span class="stat-value <%= max %>""><%= calculated.minion_slots.currentSlots %></span><span class="grey-text"> (<%= calculated.minion_slots.toNextSlot %> to next slot)</span><br>
+                    <% max = maxedMinions == _.size(constants.minions) ? 'golden-text' : '' %><span class="stat-name <%= max %>">Maxed Minions: </span><span class="stat-value <%= max %>"><%= maxedMinions %> / <%= _.size(constants.minions) %></span><br>
                     <% if(skippedMinions > 0){ %>
                     <span class="stat-name">Skipped Minion Tiers: </span><span class="stat-value"><%= skippedMinions %></span><br>
                     <% } %>
@@ -1668,7 +1869,7 @@ twitterDescription += '. Click to view more stats!'
                             && calculated.collections[collection.skyblockId].tier >= collection.maxTier)
                                 maxCollections++;
                         %>
-                        <span class="stat-name">Maxed Collections: </span><span class="stat-value"><%= maxCollections %> / <%= constants.collection_data.length %></span>
+                        <% max = maxCollections == constants.collection_data.length ? 'golden-text' : '' %><span class="stat-name <%= max %>">Maxed Collections: </span><span class="stat-value <%= max %>"><%= maxCollections %> / <%= constants.collection_data.length %></span>
                     </p>
                     <% for(const type of constants.collection_types){
                         const collections = [];
@@ -1731,12 +1932,82 @@ twitterDescription += '. Click to view more stats!'
                         <div class="minion-category-header"><div class="minion-category-icon"><div class="item-icon icon-317_0"></div></div><span>races</span></div>
                         <p class="stat-raw-values">
                             <% for(const key in calculated.misc.races){
+                                if(key.startsWith('dungeon_hub'))
+                                    continue;
+
                                 const raceName = helper.capitalizeFirstLetter(key.split("_").join(" "));
-                                const raceDuration = moment.duration(calculated.misc.races[key], "milliseconds").format("m:ss.SSS");
+                                let raceDuration = moment.duration(calculated.misc.races[key], "milliseconds").format("m:ss.SSS");
+
+                                if(calculated.misc.races[key] < 1000)
+                                    raceDuration = '0.' + raceDuration;
                             %>
                             <span class="stat-name"><%= raceName %>: </span><span class="stat-value"><%= raceDuration %></span><br>
                             <% } %>
                         </p>
+                        <div class="race-containers">
+                            <%
+                            const races = [
+                                { id: "dungeon_hub_crystal_core", name: "Crystal Core", icon: '399_0' },
+                                { id: "dungeon_hub_giant_mushroom", name: "Giant Mushroom", icon: '100_0' },
+                                { id: "dungeon_hub_precursor_ruins", name: "Precursor Ruins", icon: '98_1' }
+                            ];
+
+                            const types = ["anything", "no_pearls", "no_abilities", "nothing"];
+
+                            for(const race of races){
+                                const times = Object.keys(calculated.misc.races).filter(a => a.startsWith(race.id));
+
+                                if(times.length > 0){
+                                %>
+                                <div class="narrow-info-container">
+                                    <div class="narrow-info-header"><%= race.name %></div>
+                                    <div class="narrow-info-content">
+                                        <%
+                                        const races_no_return = times.filter(a => a.includes("no_return"));
+                                        const races_with_return = times.filter(a => a.includes("with_return"));
+
+                                        if(races_no_return.length > 0){ %>
+                                            <div class="narrow-info-section-header">No Return:</div>
+                                        <% }
+
+                                        for(const type of types){
+                                            const duration = calculated.misc.races[`${race.id}_${type}_no_return_best_time`] || 0;
+
+                                            if(duration == 0)
+                                                continue;
+
+                                            let raceDuration = moment.duration(duration, "milliseconds").format("m:ss.SSS");
+
+                                            if(duration < 1000)
+                                                raceDuration = '0.' + raceDuration;
+                                            %>
+                                            <div><span class="stat-name"><%= helper.titleCase(type.replace("_", " ")) %>: </span><span class="stat-value"><%= raceDuration %></span></div>
+                                        <% }
+
+                                        if(races_with_return.length > 0){ %>
+                                            <div class="narrow-info-section-header">With Return:</div>
+                                        <% }
+
+                                        for(const type of types){
+                                            const duration = calculated.misc.races[`${race.id}_${type}_with_return_best_time`] || 0;
+
+                                            if(duration == 0)
+                                                continue;
+
+                                            let raceDuration = moment.duration(duration, "milliseconds").format("m:ss.SSS");
+
+                                            if(duration < 1000)
+                                                raceDuration = '0.' + raceDuration;
+                                            %>
+                                            <div><span class="stat-name"><%= helper.titleCase(type.replace("_", " ")) %>: </span><span class="stat-value"><%= raceDuration %></span></div>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <%
+                                }
+                            }
+                            %>
+                        </div>
                     <% } %>
                     <% if('gifts' in calculated.misc){ %>
                         <div class="minion-category-header"><div class="minion-category-icon"><div class="item-icon custom-icon" style="background-image: url(https://sky.lea.moe/head/b73a2114136b8ee4926caa51785414036a2b76e4f1668cb89d99716c421)"></div></div><span>gifts</span></div>
@@ -1760,15 +2031,23 @@ twitterDescription += '. Click to view more stats!'
                             <% for(const key in calculated.misc.dragons){
                                 let tooltip = "";
 
-                                if(key == 'dragon_last_hits')
+                                if(key == 'last_hits')
                                     for(const kill of calculated.kills.filter(a => a.entityId.endsWith('_dragon')))
                                         tooltip += `<span class="stat-name">${ kill.entityName }: </span><span class="stat-value">${ kill.amount }</span> <span class="grey-text">(${ Math.round(kill.amount / calculated.misc.dragons[key] * 100) }%)</span><br>`;
 
-                                if(key == 'dragon_deaths')
+                                if(key == 'deaths')
                                     for(const death of calculated.deaths.filter(a => a.entityId.endsWith('_dragon')))
                                         tooltip += `<span class="stat-name">${ death.entityName }: </span><span class="stat-value">${ death.amount }</span><br>`;
                             %>
                             <span <%- tooltip ? `data-tippy-content='${tooltip}'` : "" %>><span class="stat-name"><%= helper.capitalizeFirstLetter(key.split("_").join(" ")); %>: </span><span class="stat-value"><%= calculated.misc.dragons[key].toLocaleString() %></span></span><br>
+                            <% } %>
+                    </p>
+                    <% } %>
+                    <% if('protector' in calculated.misc){ %>
+                        <div class="minion-category-header"><div class="minion-category-icon"><div class="item-icon custom-icon" style="background-image: url(https://sky.lea.moe/head/89091d79ea0f59ef7ef94d7bba6e5f17f2f7d4572c44f90f76c4819a714)"></div></div><span>Endstone Protectors</span></div>
+                        <p class="stat-raw-values">
+                            <% for(const key in calculated.misc.protector){ %>
+                            <span class="stat-name"><%= helper.capitalizeFirstLetter(key.split("_").join(" ")); %>: </span><span class="stat-value"><%= calculated.misc.protector[key].toLocaleString() %></span><br>
                             <% } %>
                     </p>
                     <% } %>
@@ -1825,17 +2104,5 @@ twitterDescription += '. Click to view more stats!'
         let items = <%- JSON.stringify(items) %>;
         let calculated = <%- JSON.stringify(calculated) %>;
     </script>
-    <% if('recaptcha_site_key' in extra){ %>
-        <script src="https://www.google.com/recaptcha/api.js?render=<%= extra.recaptcha_site_key %>"></script>
-        <script>
-            grecaptcha.ready(function(){
-                grecaptcha.execute('<%= extra.recaptcha_site_key %>', {action: 'homepage'}).then(function(token){
-                    let addView = new XMLHttpRequest();
-                    addView.open("GET", "/api/addView?token=" + token + "&uuid=" + calculated.uuid);
-                    addView.send();
-                });
-            });
-        </script>
-    <% } %>
 </body>
 </html>

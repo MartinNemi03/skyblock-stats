@@ -1,0 +1,7 @@
+{
+    "parent": "item/generated",
+    "textures": {
+        "layer0": "optifine/cit/potions/blank",
+        "layer1": "optifine/cit/potions/alchemy_iii"
+    }
+}

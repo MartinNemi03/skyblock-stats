@@ -1,5 +1,5 @@
-<p align="center"><img src="https://i.imgur.com/ntDCRJN.png"></p>
-<h1 align="center">A beautiful SkyBlock stats website 🌹</h1>
+<p align="center"><img src="https://i.imgur.com/h74ZXmI.png"></p>
+<h1 align="center">A beautiful SkyBlock profile viewer 🌹</h1>
 
 This project allows you to share your <a href="https://hypixel.net//">Hypixel</a> SkyBlock profile with other players with a quick overview of your Stats, Skills, Armor, Weapons and Accessories.
 
@@ -17,6 +17,7 @@ You are free to report bugs or contribute to this project. Just open <a href="..
 
 - <a href="https://nodejs.org/">Node.js</a>
 - <a href="https://docs.mongodb.com/manual/administration/install-community/">MongoDB</a>
+- <a href="https://redis.io/">Redis</a>
 - <a href="https://api.hypixel.net/">Hypixel API Key</a>
 
 <h3>Installation</h3>

@@ -4,7 +4,9 @@ const { randomBytes } = require('crypto');
 const credentialsDefault = {
     hypixel_api_key: "",
     recaptcha_site_key: "",
-    recaptcha_secret_key: ""
+    recaptcha_secret_key: "",
+    dbUrl: "mongodb://localhost:27017",
+    dbName: "sbstats"
 };
 
 if(!fs.existsSync('./credentials.json'))
@@ -20,35 +22,33 @@ fs.writeFileSync('./credentials.json', JSON.stringify(credentials, null, 4));
 fs.ensureDirSync('cache');
 
 async function main(){
-    const dbUrl = 'mongodb://localhost:27017';
-    const dbName = 'sbstats';
-
     const constants = require('./src/constants');
 
     const { MongoClient } = require('mongodb');
-    const mongo = new MongoClient(dbUrl, { useUnifiedTopology: true });
+    const mongo = new MongoClient(credentials.dbUrl, { useUnifiedTopology: true });
     await mongo.connect();
 
-    const db = mongo.db(dbName);
+    const db = mongo.db(credentials.dbName);
 
     await db
-    .collection('profiles')
+    .collection('apiKeys')
     .createIndex(
-        { username: 'text' }
+        { key: 1 },
+        { unique: true }
     );
 
     await db
-    .collection('profiles')
+    .collection('profileStore')
     .createIndex(
         { uuid: 1 },
         { unique: true }
     );
 
     await db
-    .collection('profiles')
+    .collection('profileStore')
     .createIndex(
-        { api: 1 },
-        { partialFilterExpression: { api: true } }
+        { apis: 1 },
+        { partialFilterExpression: { apis: true } }
     );
 
     await db
@@ -72,32 +72,6 @@ async function main(){
     );
 
     await db
-    .collection('views')
-    .createIndex(
-        { uuid: 1, ip: 1 },
-        { unique: true }
-    );
-
-    await db
-    .collection('profileViews')
-    .createIndex(
-        { uuid: 1 },
-        { unique: true }
-    );
-
-    await db
-    .collection('profileViews')
-    .createIndex(
-        { total: -1 }
-    );
-
-    await db
-    .collection('profileViews')
-    .createIndex(
-        { weekly: -1 }
-    );
-
-    await db
     .collection('profileViews')
     .createIndex(
         { daily: -1 }
@@ -115,6 +89,12 @@ async function main(){
     .createIndex(
         { uuid: 1 },
         { unique: true }
+    );
+
+    await db
+    .collection('guildMembers')
+    .createIndex(
+        { gid: 1 }
     );
 
     await db
@@ -139,33 +119,6 @@ async function main(){
         );
     }
 
-    await db.createCollection('viewsLeaderboard', {
-        viewOn: 'profileViews',
-        pipeline: [
-            {
-                $sort: {
-                    total: -1
-                }
-            },
-            {
-                $limit: 20
-            },
-            {
-                "$lookup": {
-                    "from": "usernames",
-                    "localField": "uuid",
-                    "foreignField": "uuid",
-                    "as": "userInfo"
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$userInfo"
-                }
-            }
-        ]
-    });
-
     await db
     .collection('bazaar')
     .createIndex(
@@ -174,13 +127,50 @@ async function main(){
     );
 
     await db
-    .collection('bazaarTracker')
+    .collection('hypixelPlayers')
     .createIndex(
-        { productId: 1, time: 1 },
+        { uuid: 1 },
         { unique: true }
     );
 
+    await db
+    .collection('profileCache')
+    .createIndex(
+        { profile_id: 1 },
+        { unique: true }
+    );
+
+    await db
+    .collection('topViews')
+    .createIndex(
+        { total: -1 }
+    );
+
+    await db.collection('topViews').deleteMany({});
+
+    for await(const doc of db.collection('viewsLeaderboard').aggregate([
+        {
+            "$lookup": {
+                "from": "profileStore",
+                "localField": "uuid",
+                "foreignField": "uuid",
+                "as": "profileInfo"
+            }
+        },
+        {
+            "$unwind": {
+                "path": "$profileInfo"
+            }
+        },
+        {
+            "$limit": 20
+        }
+    ])){
+        await db.collection('topViews').insertOne(doc);
+    }
+
     mongo.close();
+    process.exit(0);
 }
 
 main();

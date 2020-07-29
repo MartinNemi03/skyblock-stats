@@ -6,6 +6,33 @@ document.addEventListener('DOMContentLoaded', function(){
         trigger: 'mouseenter click'
     });
 
+    const playerModel = document.getElementById("player_model");
+
+    let skinViewer;
+
+    if(calculated.skin_data){
+        skinViewer = new skinview3d.SkinViewer({
+    		domElement: playerModel,
+    		width: playerModel.offsetWidth,
+    		height: playerModel.offsetHeight,
+    		skinUrl: "/texture/" + calculated.skin_data.skinurl.split("/").pop(),
+    		capeUrl: 'capeurl' in calculated.skin_data ? "/texture/" + calculated.skin_data.capeurl.split("/").pop() : "/cape/" + calculated.display_name
+    	});
+
+    	skinViewer.camera.position.set(-18, -3, 58);
+    	skinViewer.detectModel = false;
+
+        if(calculated.skin_data.model == 'slim')
+    	   skinViewer.playerObject.skin.slim = true;
+
+    	let controls = new skinview3d.createOrbitControls(skinViewer);
+
+        controls.enableZoom = false;
+        controls.enablePan = false;
+
+    	skinViewer.animations.add(skinview3d.IdleAnimation);
+    }
+
     tippyInstance = tippy('.interactive-tooltip', {
         trigger: 'mouseenter click',
         interactive: true,
@@ -19,16 +46,23 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 
-    const all_items = items.armor.concat(items.inventory, items.enderchest, items.talisman_bag, items.fishing_bag, items.quiver, items.potion_bag);
+    const all_items = items.armor.concat(items.inventory, items.enderchest, items.talisman_bag, items.fishing_bag, items.quiver, items.potion_bag, items.wardrobe_inventory);
 
     let dimmer = document.querySelector("#dimmer");
 
     let inventoryContainer = document.querySelector('#inventory_container');
 
+    const urlParams = new URLSearchParams(window.location.search);
+
+    urlParams.delete('__cf_chl_jschl_tk__');
+    urlParams.delete('__cf_chl_captcha_tk__');
+
+    const urlParamsString = urlParams.toString().length > 0 ? '?' + urlParams.toString() : '';
+
     if(calculated.profile.cute_name == 'Deleted')
-        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.profile_id + window.location.search);
+        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.profile_id + urlParamsString);
     else
-        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.cute_name + window.location.search);
+        history.replaceState({}, document.title, '/stats/' + calculated.display_name + '/' + calculated.profile.cute_name + urlParamsString);
 
     function isEnchanted(item){
         if(item.animated)
@@ -68,9 +102,11 @@ document.addEventListener('DOMContentLoaded', function(){
         let countSlotsUsed = 0;
 
         inventory.forEach(function(item){
-            if(Object.keys(item).length > 1)
+            if(Object.keys(item).length > 2)
                 countSlotsUsed++;
         });
+
+        countSlotsUsed = Math.max(countSlotsUsed, 9);
 
         switch(type){
             case 'inventory':
@@ -80,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             default:
                 if(type in calculated.bag_sizes)
-                    inventory = inventory.slice(0, Math.max(countSlotsUsed, calculated.bag_sizes[type]));
+                    inventory = inventory.slice(0, Math.max(countSlotsUsed - 1, calculated.bag_sizes[type]));
         }
 
         inventory.forEach(function(item, index){
@@ -106,7 +142,8 @@ document.addEventListener('DOMContentLoaded', function(){
 
                 let inventoryItem = document.createElement('div');
 
-                bindLoreEvents(inventoryItem);
+                let pieceHoverArea = document.createElement('div');
+                pieceHoverArea.className = 'piece-hover-area';
 
                 inventoryItem.className = 'rich-item inventory-item';
 
@@ -116,11 +153,14 @@ document.addEventListener('DOMContentLoaded', function(){
                     inventoryItem.setAttribute('data-item-index', item.item_index);
 
                 inventoryItem.appendChild(inventoryItemIcon);
+                inventoryItem.appendChild(pieceHoverArea);
 
                 if(item.Count != 1)
                     inventoryItem.appendChild(inventoryItemCount);
 
                 inventorySlot.appendChild(inventoryItem);
+
+                bindLoreEvents(pieceHoverArea);
             }
 
             inventoryView.appendChild(inventorySlot);
@@ -179,6 +219,8 @@ document.addEventListener('DOMContentLoaded', function(){
             item = [currentBackpack.containsItems[Number(element.getAttribute('data-backpack-item-index'))]];
         else if(element.hasAttribute('data-pet-index'))
             item = [calculated.pets[parseInt(element.getAttribute('data-pet-index'))]];
+        else if(element.hasAttribute('data-missing-pet-index'))
+            item = [calculated.missingPets[parseInt(element.getAttribute('data-missing-pet-index'))]];
 
         if(item.length == 0)
             return;
@@ -292,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function(){
             viewBackpack.classList = 'view-backpack';
 
             let viewBackpackText = document.createElement('div');
-            viewBackpackText.innerHTML = '<span>View Backpack</span><br><span>(Hold CTRL while clicking backpack to immediately open)</span>';
+            viewBackpackText.innerHTML = '<span>View Backpack</span><br><span>(Right click backpack to immediately open)</span>';
 
             viewBackpack.appendChild(viewBackpackText);
 
@@ -331,10 +373,31 @@ document.addEventListener('DOMContentLoaded', function(){
 
             statsContent.classList.remove('sticky-stats', 'show-stats');
         }
+
+        const openedWardrobe = document.querySelector('.wardrobe-opened');
+
+        if(openedWardrobe)
+            openedWardrobe.classList.remove('wardrobe-opened');
     }
 
+    let oldWidth = null;
+    let oldheight = null;
+
     function resize(){
+        if(window.innerWidth <= 1570 && (oldWidth === null || oldWidth > 1570))
+            document.getElementById("skin_display_mobile").appendChild(skinViewer.domElement);
+
+        if(window.innerWidth > 1570 && oldWidth <= 1570)
+            document.getElementById("skin_display").appendChild(skinViewer.domElement);
+
         tippy('*[data-tippy-content]');
+
+        if(skinViewer){
+            if(playerModel.offsetWidth / playerModel.offsetHeight < 0.6)
+                skinViewer.setSize(playerModel.offsetWidth, playerModel.offsetWidth * 2);
+            else
+                skinViewer.setSize(playerModel.offsetHeight / 2, playerModel.offsetHeight);
+        }
 
         navBarSticky = new Sticky('#nav_bar');
         updateStatsPositions();
@@ -352,10 +415,22 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if(rect.y)
             statsContent.style.top = Math.max(70, Math.min(maxTop, (rect.y + element.offsetHeight / 2) - statsContent.offsetHeight / 2)) + 'px';
+
+        oldWidth = window.innerWidth;
+        oldHeight = window.innerHeight;
     }
 
+    [].forEach.call(document.querySelectorAll('.sub-extendable .stat-sub-header'), function(element){
+        element.addEventListener('click', function(e){
+            if(element.parentNode.classList.contains('sub-extended'))
+                element.parentNode.classList.remove('sub-extended')
+            else
+                element.parentNode.classList.add('sub-extended');
+        });
+    });
+
     [].forEach.call(document.querySelectorAll('.stat-weapons .select-weapon'), function(element){
-        let item_index = element.parentNode.getAttribute('data-item-index');
+        let itemId = element.parentNode.getAttribute('data-item-id');
         let filterItems;
 
         if(element.parentNode.hasAttribute('data-backpack-index')){
@@ -369,9 +444,9 @@ document.addEventListener('DOMContentLoaded', function(){
              filterItems = items.weapons.filter(a => !('backpackIndex' in a));
         }
 
-        let item = filterItems.filter(a => a.item_index == item_index)[0];
+        let item = filterItems.filter(a => a.itemId == itemId)[0];
 
-        let weaponStats = calculated.weapon_stats[item_index];
+        let weaponStats = calculated.weapon_stats[itemId];
         let stats;
 
         element.addEventListener('mousedown', function(e){
@@ -408,12 +483,15 @@ document.addEventListener('DOMContentLoaded', function(){
             });
 
             for(let stat in stats){
+                if(stat == 'sea_creature_chance')
+                    continue;
+
                 let element = document.querySelector('.basic-stat[data-stat=' + stat + '] .stat-value');
 
                 if(!element)
                     continue;
 
-                let currentValue = Number(element.innerHTML);
+                let currentValue = parseInt(element.innerHTML);
                 let newValue = stats[stat];
 
                 if(newValue != currentValue){
@@ -426,6 +504,80 @@ document.addEventListener('DOMContentLoaded', function(){
                         easing: 'easeOutCubic'
                     });
                 }
+            }
+        });
+    });
+
+    [].forEach.call(document.querySelectorAll('.stat-fishing .select-rod'), function(element){
+        let itemId = element.parentNode.getAttribute('data-item-id');
+        let filterItems;
+
+        if(element.parentNode.hasAttribute('data-backpack-index')){
+            let backpack = all_items.filter(a => a.item_index == Number(element.parentNode.getAttribute('data-backpack-index')));
+
+            if(backpack.length == 0)
+                return;
+
+            filterItems = backpack[0].containsItems;
+        }else{
+             filterItems = items.rods.filter(a => !('backpackIndex' in a));
+        }
+
+        let item = filterItems.filter(a => a.itemId == itemId)[0];
+
+        let weaponStats = calculated.weapon_stats[itemId];
+        let stats;
+
+        element.addEventListener('mousedown', function(e){
+            e.preventDefault();
+        });
+
+        element.addEventListener('click', function(e){
+            if(element.parentNode.classList.contains('piece-selected')){
+                element.parentNode.classList.remove("piece-selected");
+
+                stats = calculated.stats;
+
+                document.querySelector('.stat-active-rod').className = 'stat-value stat-active-rod piece-common-fg';
+                document.querySelector('.stat-active-rod').innerHTML = 'None';
+            }else{
+                [].forEach.call(document.querySelectorAll('.stat-fishing .piece'), function(_element){
+                    _element.classList.remove("piece-selected");
+                });
+
+                element.parentNode.classList.add("piece-selected");
+
+                document.querySelector('.stat-active-rod').className = 'stat-value stat-active-rod piece-' + item.rarity + '-fg';
+                document.querySelector('.stat-active-rod').innerHTML = item.display_name;
+
+                stats = weaponStats;
+            }
+
+            anime({
+                targets: '.stat-active-rod',
+                backgroundColor: ['rgba(255,255,255,1)', 'rgba(255,255,255,0)'],
+                duration: 500,
+                round: 1,
+                easing: 'easeOutCubic'
+            });
+
+            let _element = document.querySelector('.basic-stat[data-stat=sea_creature_chance] .stat-value');
+
+            if(!_element)
+                return;
+
+            let currentValue = parseInt(_element.innerHTML);
+            let newValue = stats['sea_creature_chance'];
+
+            if(newValue != currentValue){
+                anime({
+                    targets: '.basic-stat[data-stat=sea_creature_chance] .stat-value',
+                    innerHTML: newValue,
+                    backgroundColor: ['rgba(255,255,255,1)', 'rgba(255,255,255,0)'],
+                    duration: 500,
+                    round: 1,
+                    easing: 'easeOutCubic'
+                });
             }
         });
     });
@@ -518,20 +670,32 @@ document.addEventListener('DOMContentLoaded', function(){
     const itemLore = statsContent.querySelector('.item-lore');
     const backpackContents = statsContent.querySelector('.backpack-contents');
 
+    const touchDevice = window.matchMedia("(pointer: coarse)").matches;
+
+    function bindWardrobeEvents(element){
+        element.addEventListener('click', function(e){
+            const currentWardrobe = document.querySelector('.wardrobe-opened');
+
+            if(currentWardrobe)
+                currentWardrobe.classList.remove('wardrobe-opened');
+
+            element.classList.add('wardrobe-opened');
+        });
+    }
+
     function bindLoreEvents(element){
         element.addEventListener('mouseenter', function(e){
-            if(e.target.classList.contains('select-weapon'))
+            fillLore(element.parentNode, false);
+
+            if(touchDevice && element.parentNode.classList.contains('wardrobe-piece') && !element.parentNode.parentNode.classList.contains('wardrobe-opened'))
                 return;
 
-            fillLore(element, false);
             statsContent.classList.add('show-stats');
         });
 
         element.addEventListener('mouseleave', function(e){
-            if(e.target.classList.contains('select-weapon'))
-                return;
-
             statsContent.classList.remove('show-stats');
+            element.classList.remove('piece-hovered');
         });
 
         element.addEventListener('mousemove', function(e){
@@ -554,35 +718,52 @@ document.addEventListener('DOMContentLoaded', function(){
             statsContent.style.top = top + "px";
         });
 
+        const itemIndex = Number(element.parentNode.getAttribute('data-item-index'));
+        let item = all_items.filter(a => a.item_index == itemIndex);
+
+        if(item.length > 0)
+            item = item[0];
+
+        if(item && Array.isArray(item.containsItems)){
+            element.parentNode.addEventListener('contextmenu', function(e){
+                e.preventDefault();
+
+                showBackpack(item);
+                closeLore();
+            });
+        }
+
         element.addEventListener('click', function(e){
-            if(!e.target.classList.contains('select-weapon')){
-                let itemIndex = Number(element.getAttribute('data-item-index'));
-                let item = all_items.filter(a => a.item_index == itemIndex);
+            if(touchDevice && element.parentNode.classList.contains('wardrobe-piece') && !element.parentNode.parentNode.classList.contains('wardrobe-opened')){
+                element.parentNode.blur();
+                return;
+            }
 
-                if(item.length > 0)
-                    item = item[0];
+            if(element.parentNode.parentNode.classList.contains('wardrobe-set'))
+                element.parentNode.parentNode.classList.add('wardrobe-opened');
 
-                if(e.ctrlKey && item && Array.isArray(item.containsItems)){
-                    showBackpack(item);
+            console.log(e);
+
+            if(e.ctrlKey && item && Array.isArray(item.containsItems)){
+                showBackpack(item);
+                closeLore();
+            }else{
+                if(statsContent.classList.contains('sticky-stats')){
                     closeLore();
                 }else{
-                    if(statsContent.classList.contains('sticky-stats')){
-                        dimmer.classList.remove('show-dimmer');
-                        element.blur();
-                        element.classList.remove('sticky-stats');
-                        statsContent.classList.remove('sticky-stats')
-                    }else{
-                        showLore(element, false);
+                    showLore(element.parentNode, false);
 
-                        if(Number(statsContent.getAttribute('data-item-index')) != itemIndex)
-                            fillLore(element);
-                    }
+                    if(Number(statsContent.getAttribute('data-item-index')) != itemIndex)
+                        fillLore(element.parentNode);
                 }
             }
         });
     }
 
-    [].forEach.call(document.querySelectorAll('.rich-item'), bindLoreEvents);
+    if(touchDevice)
+        [].forEach.call(document.querySelectorAll('.wardrobe-set'), bindWardrobeEvents);
+
+    [].forEach.call(document.querySelectorAll('.rich-item .piece-hover-area'), bindLoreEvents);
 
     let enableApiPlayer = document.querySelector('#enable_api');
 
@@ -624,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function(){
         });
 
         element.addEventListener('click', function(){
-            navigator.clipboard.writeText(element.innerHTML).then(function(){
+            navigator.clipboard.writeText(element.getAttribute("data-copy-text")).then(function(){
                 copyNotification.show();
 
                 setTimeout(function(){
@@ -724,6 +905,8 @@ document.addEventListener('DOMContentLoaded', function(){
             updateTab = true;
     });
 
+    updateTab = true;
+
     [].forEach.call(document.querySelectorAll('.nav-item'), function(element){
         element.addEventListener('click', function(){
             updateTabLock = true;
@@ -774,6 +957,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
     [].forEach.call(document.querySelectorAll('.xp-skill'), function(element){
         let skillProgressText = element.querySelector('.skill-progress-text');
+
+        if(skillProgressText === null)
+            return;
+
         let originalText = skillProgressText.innerHTML;
 
         element.addEventListener('mouseenter', function(){
@@ -843,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 
     resize();
+
     window.addEventListener('resize', resize);
 
     window.addEventListener('scroll', function(){
