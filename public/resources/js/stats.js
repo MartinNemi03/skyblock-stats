@@ -83,6 +83,56 @@ document.addEventListener('DOMContentLoaded', function(){
         return false;
     };
 
+    function renderLore(text){
+        let output = "";
+        let spansOpened = 0;
+
+        const parts = text.split("§");
+
+        if(parts.length == 1)
+            return text;
+
+        for(const part of parts){
+            const code = part.substring(0, 1);
+            const content = part.substring(1);
+
+            const format = constants.minecraft_formatting[code];
+
+            if(format === undefined)
+                continue;
+
+            if(format.type == 'color'){
+                for(; spansOpened > 0; spansOpened--)
+                    output += "</span>";
+
+                output += `<span style='${format.css}'>${content}`;
+
+                spansOpened++;
+            }else if(format.type == 'format'){
+                output += `<span style='${format.css}'>${content}`;
+
+                spansOpened++;
+            }else if(format.type == 'reset'){
+                for(; spansOpened > 0; spansOpened--)
+                    output += "</span>";
+
+                output += content;
+            }
+        }
+
+        for(; spansOpened > 0; spansOpened--)
+            output += "</span>";
+
+        const specialColor = constants.minecraft_formatting['6'];
+
+        const matchingEnchants = constants.special_enchants.filter(a => output.includes(a));
+
+        for(const enchantment of matchingEnchants)
+            output = output.replace(enchantment, `<span style='${specialColor.css}'>${enchantment}</span>`);
+
+        return output;
+    }
+
     let currentBackpack;
 
     function renderInventory(inventory, type){
@@ -256,6 +306,20 @@ document.addEventListener('DOMContentLoaded', function(){
 
         itemLore.innerHTML = item.lore || '';
 
+        try{
+            if(item.lore != null)
+                throw null;
+
+            item.tag.display.Lore.forEach(function(line, index){
+                itemLore.innerHTML += renderLore(line);
+
+                if(index + 1 < item.tag.display.Lore.length)
+                    itemLore.innerHTML += '<br>';
+            });
+        }catch(e){
+            
+        }
+
         if(item.texture_pack){
             let packContent = document.createElement('div');
             packContent.classList.add('pack-credit');
@@ -394,9 +458,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if(skinViewer){
             if(playerModel.offsetWidth / playerModel.offsetHeight < 0.6)
-                skinViewer.setSize(playerModel.offsetWidth, playerModel.offsetWidth * 2);
+                skinViewer.setSize(playerModel.offsetWidth * 2, playerModel.offsetWidth * 4);
             else
-                skinViewer.setSize(playerModel.offsetHeight / 2, playerModel.offsetHeight);
+                skinViewer.setSize(playerModel.offsetHeight, playerModel.offsetHeight * 2);
         }
 
         navBarSticky = new Sticky('#nav_bar');
@@ -741,8 +805,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
             if(element.parentNode.parentNode.classList.contains('wardrobe-set'))
                 element.parentNode.parentNode.classList.add('wardrobe-opened');
-
-            console.log(e);
 
             if(e.ctrlKey && item && Array.isArray(item.containsItems)){
                 showBackpack(item);

@@ -129,6 +129,49 @@ module.exports = {
         1886700
     ],
 
+    pet_level: (tier, exp) => {
+        const rarityOffset = module.exports.pet_rarity_offset[tier.toLowerCase()];
+        const levels = module.exports.pet_levels.slice(rarityOffset, rarityOffset + 99);
+
+        const xpMaxLevel = levels.reduce((a, b) => a + b, 0)
+        let xpTotal = 0;
+        let level = 1;
+
+        let xpForNext = Infinity;
+
+        for(let i = 0; i < 100; i++){
+            xpTotal += levels[i];
+
+            if(xpTotal > exp){
+                xpTotal -= levels[i];
+                break;
+            }else{
+                level++;
+            }
+        }
+
+        let xpCurrent = Math.floor(exp - xpTotal);
+        let progress;
+
+        if(level < 100){
+            xpForNext = Math.ceil(levels[level - 1]);
+            progress = Math.max(0, Math.min(xpCurrent / xpForNext, 1));
+        }else{
+            level = 100;
+            xpCurrent = exp - levels[99];
+            xpForNext = 0;
+            progress = 1;
+        }
+
+        return {
+            level,
+            xpCurrent,
+            xpForNext,
+            progress,
+            xpMaxLevel
+        };
+    },
+
     pet_data: {
         "BAT": {
             head: "/head/382fc3f71b41769376a9e92fe3adbaac3772b999b219c9d6b4680ba9983e527",
@@ -349,6 +392,21 @@ module.exports = {
             head: "/head/e4b45cbaa19fe3d68c856cd3846c03b5f59de81a480eec921ab4fa3cd81317",
             type: "combat",
             emoji: "🐱"
+        },
+        "SPIRIT": {
+            head: "/head/8d9ccc670677d0cebaad4058d6aaf9acfab09abea5d86379a059902f2fe22655",
+            type: "combat",
+            emoji: "👻"
+        },
+        "GRIFFIN": {
+            head: "/head/4c27e3cb52a64968e60c861ef1ab84e0a0cb5f07be103ac78da67761731f00c8",
+            type: "combat",
+            emoji: "🦅"
+        },
+        "MEGALODON": {
+            head: "/head/a94ae433b301c7fb7c68cba625b0bd36b0b14190f20e34a7c8ee0d9de06d53b9",
+            type: "fishing",
+            emoji: "🦈"
         }
     },
 

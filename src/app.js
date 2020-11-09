@@ -80,8 +80,12 @@ async function main(){
         const kofiEntry = await db.collection('donations').findOne({type: 'kofi'});
         const patreonEntry = await db.collection('donations').findOne({type: 'patreon'});
 
+        const cookieEntry = await db.collection('bazaar').findOne({ productId: 'BOOSTER_COOKIE' });
+
         if(kofiEntry == null || patreonEntry == null)
             return output;
+
+        output.cookie = cookieEntry;
 
         output.donations = {
             kofi: kofiEntry.amount || 0,
@@ -274,6 +278,13 @@ async function main(){
         res.setHeader('Cache-Control', `public, max-age=${CACHE_DURATION}`);
         res.contentType('image/png');
         res.send(file);
+    });
+
+    app.all('/robots.txt', async (req, res, next) => {
+        res.type('text').send(
+`User-agent: *
+Disallow: /item /head /leather /resources
+`);
     });
 
     app.all('/sitemap.xml', async (req, res, next) => {

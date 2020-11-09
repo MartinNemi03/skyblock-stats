@@ -575,7 +575,7 @@ html.no-webp #bg_blur{
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0.5);
     cursor: pointer;
 }
 
@@ -845,6 +845,13 @@ html.no-transform #info_box.opened{
     vertical-align: middle;
     height: 28px;
     margin-top: -4px;
+}
+
+#stats_for_profile .emoji{
+    vertical-align: middle;
+    height: 32px;
+    margin-top: -5px;
+    margin-left: -5px;
 }
 
 .rank-tag{
@@ -1257,6 +1264,8 @@ a.additional-player-stat:hover{
     height: 24px;
     font-weight: 600;
     display: block;
+    z-index: 5;
+    position: relative;
 }
 
 .basic-stat [data-tippy-content]::after{
@@ -1441,16 +1450,18 @@ a.additional-player-stat:hover{
     padding-top: 55px;
     position: relative;
     display: inline-block;
-    text-align: center;
     max-width: 500px;
     border-radius: 10px;
     overflow: hidden;
+    font-weight: 500;
 }
 
 .info-container span{
     display: inline-block;
+    text-align: center;
     margin-top: 10px;
     font-weight: 500;
+    width: 100%;
 }
 
 .info-header{
@@ -3240,6 +3251,13 @@ html.no-webp #error_box_wrapper{
         vertical-align: middle;
         height: 22px;
         margin-top: -3px;
+    }
+
+    #stats_for_profile .emoji{
+        vertical-align: middle;
+        height: 24px;
+        margin-top: -3px;
+        margin-left: -3px;
     }
 
     #stats_for_profile{

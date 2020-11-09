@@ -78,6 +78,8 @@ module.exports = {
         return "";
     },
 
+    floorName: floor => floor == '0' ? 'entrance' : `floor_${floor}`,
+
     resolveUsernameOrUuid: async (uuid, db, cacheOnly = false) => {
         let output;
         let user = null;
@@ -194,10 +196,14 @@ module.exports = {
 
                     return { uuid: data.id, display_name: data.username, skin_data };
                 }catch(e){
-                    if(module.exports.hasPath(e, 'response', 'data', 'reason'))
-                        throw e.response.data.reason;
-                    else
-                        throw "Failed resolving username.";
+                    if(isUuid){
+                        return { uuid, display_name: uuid, skin_data };
+                    }else{
+                        if(module.exports.hasPath(e, 'response', 'data', 'reason'))
+                            throw e.response.data.reason;
+                        else
+                            throw "Failed resolving username.";
+                    }
                 }
             }
         }

@@ -1,4 +1,23 @@
 module.exports = {
+    // prevent specific players from appearing in leaderboards
+    blocked_players: [
+        "20934ef9488c465180a78f861586b4cf", // Minikloon (Admin)
+        "f025c1c7f55a4ea0b8d93f47d17dfe0f", // Plancke (Admin)
+    ],
+
+    expertise_kills: [
+        0,
+        50,
+        100,
+        250,
+        500,
+        1000,
+        2500,
+        5500,
+        10000,
+        15000
+    ],
+
     item_types: [
         'sword',
         'bow',
@@ -23,7 +42,19 @@ module.exports = {
         "legendary": "§6"
     },
 
+    rarity_colors: {
+        "f": "common",
+        "a": "uncommon",
+        "9": "rare",
+        "5": "epic",
+        "6": "legendary",
+        "d": "mythic",
+        "c": "special"
+    },
+
     special_enchants: [
+        'Sharpness 7',
+        'Sharpness VII',
         'Sharpness 6',
         'Sharpness VI',
         'Giant Killer 6',
@@ -42,12 +73,26 @@ module.exports = {
         'Looting IV',
         'Luck 6',
         'Luck VI',
+        'Scavenger 5',
+        'Scavenger V',
         'Scavenger 4',
         'Scavenger IV',
+        'Lethality 6',
+        'Lethality VI',
+        'Thunderlord 6',
+        'Thunderlord VI',
+        'Smite 7',
+        'Smite VII',
         'Smite 6',
         'Smite VI',
         'Vampirism 6',
         'Vampirism VI',
+        'Power 7',
+        'Power VII',
+        'Growth 7',
+        'Growth VII',
+        'Protection 7',
+        'Protection VII',
         'Power 6',
         'Power VI',
         'Growth 6',
@@ -79,7 +124,9 @@ module.exports = {
         'Feather Falling 10',
         'Feather Falling X',
         'Infinite Quiver 10',
-        'Infinite Quiver X'
+        'Infinite Quiver X',
+        'Expertise 10',
+        'Expertise X'
     ],
 
     // Player stats on a completely new profile
@@ -266,6 +313,636 @@ module.exports = {
         }
     },
 
+    sea_creatures: [
+        {
+            name: 'Squid',
+            id: 'pond_squid',
+            rarity: 'common',
+            fishingLevel: 1,
+            level: 1,
+            hp: 120,
+            xp: 30,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Ink Sac'
+                }
+            ]
+        }, {
+            name: 'Sea Walker',
+            id: 'sea_walker',
+            rarity: 'common',
+            fishingLevel: 2,
+            level: 4,
+            hp: 750,
+            xp: 50,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Rotten Flesh'
+                }
+            ]
+        }, {
+            name: 'Night Squid',
+            id: 'night_squid',
+            rarity: 'common',
+            fishingLevel: 3,
+            level: 6,
+            hp: 250,
+            xp: 200,
+            requirements: [
+                'Dark Bait',
+                'Night Time (6:00pm - 6:00am)'
+            ],
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Ink Sac'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Squid Boots'
+                }
+            ]
+        }, {
+            name: 'Frozen Steve',
+            id: 'frozen_steve',
+            rarity: 'common',
+            fishingLevel: 4,
+            level: 7,
+            hp: 700,
+            xp: 80,
+            requirements: [
+                'Jerry Pond'
+            ],
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Ice'
+                }, {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Pufferfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Salmon'
+                }, {
+                    rarity: 'common',
+                    name: 'White Gift'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Hunk of Ice'
+                }, {
+                    rarity: 'rare',
+                    name: 'Ice Rod'
+                }
+            ]
+        }, {
+            name: 'Sea Guardian',
+            id: 'sea_guardian',
+            rarity: 'common',
+            fishingLevel: 5,
+            level: 10,
+            hp: 2500,
+            xp: 75,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Prismarine Shard'
+                }, {
+                    rarity: 'common',
+                    name: 'Prismarine Crystals'
+                }, {
+                    rarity: 'common',
+                    name: 'Sea Lantern'
+                }
+            ]
+        }, {
+            name: 'Frosty the Snowman',
+            id: 'frosty_the_snowman',
+            rarity: 'common',
+            fishingLevel: 6,
+            level: 13,
+            hp: 5000,
+            xp: 165,
+            requirements: [
+                'Jerry Pond'
+            ],
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Ice'
+                }, {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Carrot'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Snow Block'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'White Gift'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Hunk of Ice'
+                }
+            ]
+        }, {
+            name: 'Scarecrow',
+            id: 'scarecrow',
+            rarity: 'rare',
+            fishingLevel: 9,
+            level: 9,
+            requirements: [
+                'Spooky Festival'
+            ]
+        }, {
+            name: 'Sea Witch',
+            id: 'sea_witch',
+            rarity: 'uncommon',
+            fishingLevel: 7,
+            level: 15,
+            hp: 2700,
+            xp: 250,
+            requirements: [
+                'Light Bait',
+                'Day Time (6:00am - 6:00pm)'
+            ],
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Clownfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Salmon'
+                }, {
+                    rarity: 'rare',
+                    name: 'Fairy Armor'
+                }
+            ]
+        }, {
+            name: 'Sea Archer',
+            id: 'sea_archer',
+            rarity: 'uncommon',
+            fishingLevel: 9,
+            level: 15,
+            hp: 3000,
+            xp: 125,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Bone'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Bone'
+                }
+            ]
+        }, {
+            name: 'Monster of the Deep',
+            id: 'monster_of_the_deep',
+            rarity: 'uncommon',
+            fishingLevel: 11,
+            level: 20,
+            hp: 5000,
+            xp: 200,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Dark Bait'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Magnet 6)'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Rotten Flesh'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Feather'
+                }
+            ]
+        }, {
+            name: 'Grinch',
+            id: 'grinch',
+            rarity: 'uncommon',
+            fishingLevel: 13,
+            level: 21,
+            hp: 10,
+            xp: 300,
+            requirements: [
+                'Jerry Pond'
+            ],
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'White Gift'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Green Gift'
+                }
+            ]
+        }, {
+            name: 'Catfish',
+            id: 'catfish',
+            rarity: 'rare',
+            fishingLevel: 13,
+            level: 23,
+            hp: 6000,
+            xp: 300,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Pufferfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Salmon'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Frail 6)'
+                }
+            ]
+        }, {
+            name: 'Nightmare',
+            id: 'nightmare',
+            rarity: 'rare',
+            fishingLevel: 14,
+            level: 24,
+            requirements: [
+                'Spooky Festival'
+            ]
+        }, {
+            name: 'Carrot King',
+            id: 'carrot_king',
+            rarity: 'rare',
+            fishingLevel: 15,
+            level: 25,
+            hp: 10000,
+            xp: 610,
+            requirements: [
+                'Carrot Bait'
+            ],
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Caster 6)'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Rabbit Hat'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Carrot'
+                }, {
+                    rarity: 'rare',
+                    name: 'Enchanted Rabbit Foot'
+                }
+            ]
+        }, {
+            name: 'Sea Leech',
+            id: 'sea_leech',
+            rarity: 'rare',
+            fishingLevel: 16,
+            level: 30,
+            hp: 15000,
+            xp: 500,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Clownfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Spiked Hook 6)'
+                }
+            ]
+        }, {
+            name: 'Guardian Defender',
+            id: 'guardian_defender',
+            rarity: 'epic',
+            fishingLevel: 17,
+            level: 45,
+            hp: 19000,
+            xp: 750,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Lure 6)'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Prismarine Shard'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Prismarine Crystals'
+                }
+            ]
+        }, {
+            name: 'Werewolf',
+            id: 'werewolf',
+            rarity: 'epic',
+            fishingLevel: 17,
+            level: 50,
+            requirements: [
+                'Spooky Festival'
+            ]
+        }, {
+            name: 'Deep Sea Protector',
+            id: 'deep_sea_protector',
+            rarity: 'epic',
+            fishingLevel: 18,
+            level: 60,
+            hp: 20000,
+            xp: 1000,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Clownfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Angler 6)'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Iron'
+                }
+            ]
+        }, {
+            name: 'Water Hydra',
+            id: 'water_hydra',
+            rarity: 'legendary',
+            fishingLevel: 19,
+            level: 100,
+            hp: 30000,
+            xp: 3000,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Clownfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Pufferfish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Salmon'
+                }, {
+                    rarity: 'common',
+                    name: 'Enchanted Book (Luck of the Sea 6)'
+                }, {
+                    rarity: 'rare',
+                    name: 'Fish Affinity Talisman'
+                }, {
+                    rarity: 'epic',
+                    name: 'Water Hydra Head'
+                }
+            ]
+        }, {
+            name: 'Sea Emperor',
+            id: 'sea_emperor',
+            rarity: 'legendary',
+            fishingLevel: 20,
+            level: 150,
+            hp: 30000,
+            xp: 2500,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Lily Pad'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Prismarine Shard'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Prismarine Crystals'
+                }, {
+                    rarity: 'rare',
+                    name: 'Emperor\'s Skull'
+                }, {
+                    rarity: 'legendary',
+                    name: 'Shredder'
+                }, {
+                    rarity: 'special',
+                    name: 'Flying Fish'
+                }
+            ]
+        }, {
+            name: 'Phantom Fisherman',
+            id: 'phantom_fisherman',
+            rarity: 'legendary',
+            fishingLevel: 21,
+            level: 160,
+            requirements: [
+                'Spooky Festival'
+            ]
+        }, {
+            name: 'Yeti',
+            id: 'yeti',
+            rarity: 'legendary',
+            fishingLevel: 25,
+            level: 175,
+            hp: 300000,
+            xp: 3000,
+            drops: [
+                {
+                    rarity: 'common',
+                    name: 'Ice'
+                }, {
+                    rarity: 'common',
+                    name: 'Lily Pad'
+                }, {
+                    rarity: 'common',
+                    name: 'Sponge'
+                }, {
+                    rarity: 'common',
+                    name: 'Raw Fish'
+                }, {
+                    rarity: 'uncommon',
+                    name: 'Enchanted Lily Pad'
+                }, {
+                    rarity: 'rare',
+                    name: 'Hunk of Blue Ice'
+                }, {
+                    rarity: 'rare',
+                    name: 'Red Gift'
+                }, {
+                    rarity: 'legendary',
+                    name: 'Yeti Rod'
+                }, {
+                    rarity: 'legendary',
+                    name: 'Hilt of True Ice'
+                }
+            ]
+        }, {
+            name: 'Grim Reaper',
+            id: 'grim_reaper',
+            rarity: 'legendary',
+            fishingLevel: 26,
+            level: 190,
+            requirements: [
+                'Spooky Festival'
+            ]
+        }, {
+            name: 'Nurse Shark',
+            id: 'nurse_shark',
+            rarity: 'special',
+            fishingLevel: 5,
+            level: 6,
+            drops: [
+                {
+                    rarity: 'uncommon',
+                    name: 'Nurse Shark Tooth'
+                }, {
+                    rarity: 'rare',
+                    name: 'Shark Fin'
+                }
+            ]
+        }, {
+            name: 'Blue Shark',
+            id: 'blue_shark',
+            rarity: 'special',
+            fishingLevel: 10,
+            level: 20,
+            drops: [
+                {
+                    rarity: 'rare',
+                    name: 'Blue Shark Tooth'
+                }, {
+                    rarity: 'rare',
+                    name: 'Shark Fin'
+                }
+            ]
+        }, {
+            name: 'Tiger Shark',
+            id: 'tiger_shark',
+            rarity: 'special',
+            fishingLevel: 18,
+            level: 50,
+            drops: [
+                {
+                    rarity: 'epic',
+                    name: 'Tiger Shark Tooth'
+                }, {
+                    rarity: 'epic',
+                    name: 'Megalodon Pet'
+                }, {
+                    rarity: 'rare',
+                    name: 'Shark Fin'
+                }
+            ]
+        }, {
+            name: 'Great White Shark',
+            id: 'great_white_shark',
+            rarity: 'special',
+            fishingLevel: 24,
+            level: 180,
+            drops: [
+                {
+                    rarity: 'legendary',
+                    name: 'Great White Shark Tooth'
+                }, {
+                    rarity: 'legendary',
+                    name: 'Megalodon Pet'
+                }, {
+                    rarity: 'rare',
+                    name: 'Shark Fin'
+                }
+            ]
+        }
+    ],
+
     talisman_upgrades: {
         WOLF_TALISMAN: [
             'WOLF_RING'
@@ -359,6 +1036,20 @@ module.exports = {
         ],
         PERSONAL_COMPACTOR_5000: [
             'PERSONAL_COMPACTOR_6000'
+        ],
+        SCARF_STUDIES: [
+            'SCARF_THESIS',
+            'SCARF_GRIMOIRE'
+        ],
+        SCARF_THESIS: [
+            'SCARF_GRIMOIRE'
+        ],
+        CAT_TALISMAN: [
+            'LYNX_TALISMAN',
+            'CHEETAH_TALISMAN'
+        ],
+        LYNX_TALISMAN: [
+            'CHEETAH_TALISMAN'
         ]
     },
 
