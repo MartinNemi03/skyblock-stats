@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', function(){
     let userAgent = window.navigator.userAgent;
-    let tippyInstance;
 
-    tippy('*[data-tippy-content]:not(.interactive-tooltip)', {
-        trigger: 'mouseenter click'
-    });
+    tippy('*[data-tippy-content]:not(.interactive-tooltip)', { allowHTML: true });
+    tippy('.interactive-tooltip', { interactive: true, allowHTML: true });
 
     const playerModel = document.getElementById("player_model");
 
@@ -33,20 +31,7 @@ document.addEventListener('DOMContentLoaded', function(){
     	skinViewer.animations.add(skinview3d.IdleAnimation);
     }
 
-    tippyInstance = tippy('.interactive-tooltip', {
-        trigger: 'mouseenter click',
-        interactive: true,
-        appendTo: () => document.body,
-        onTrigger(instance, event){
-            if(event.type == 'click')
-                dimmer.classList.add('show-dimmer');
-        },
-        onHide(){
-            dimmer.classList.remove('show-dimmer');
-        }
-    });
-
-    const all_items = items.armor.concat(items.inventory, items.enderchest, items.talisman_bag, items.fishing_bag, items.quiver, items.potion_bag, items.wardrobe_inventory);
+    const all_items = items.armor.concat(items.inventory, items.enderchest, items.talisman_bag, items.fishing_bag, items.quiver, items.potion_bag, items.wardrobe_inventory, items.storage, items.sacks);
 
     let dimmer = document.querySelector("#dimmer");
 
@@ -166,7 +151,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             default:
                 if(type in calculated.bag_sizes)
-                    inventory = inventory.slice(0, Math.max(countSlotsUsed - 1, calculated.bag_sizes[type]));
+                    inventory = inventory.slice(0, Math.max(countSlotsUsed - 1, calculated.bag_sizes[type], 8));
+        }
+
+        if (inventory.length < countSlotsUsed) {
+            while (inventory.length < countSlotsUsed) {
+                inventory.push({});
+            }
         }
 
         inventory.forEach(function(item, index){
@@ -178,6 +169,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 let inventoryItemCount = document.createElement('div');
 
                 inventoryItemIcon.className = 'piece-icon item-icon icon-' + item.id + '_' + item.Damage;
+
+                if(item.Damage != 0)
+                    inventoryItemIcon.className += ' icon-' + item.id + '_0';
 
                 if(item.texture_path){
                     inventoryItemIcon.className += ' custom-icon';
@@ -297,6 +291,9 @@ document.addEventListener('DOMContentLoaded', function(){
             itemIcon.removeAttribute('style');
             itemIcon.classList.remove('custom-icon');
             itemIcon.className = 'stats-piece-icon item-icon icon-' + item.id + '_' + item.Damage;
+
+            if(item.Damage != 0)
+                itemIcon.className += ' icon-' + item.id + '_0';
         }
 
         /* broken sometimes
@@ -363,6 +360,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     let enchantedClass = isEnchanted(backpackItem) ? 'is-enchanted' : '';
 
                     inventoryItemIcon.className = 'piece-icon item-icon ' + enchantedClass + ' icon-' + backpackItem.id + '_' + backpackItem.Damage;
+
+                    if(backpackItem.Damage != 0)
+                        inventoryItemIcon.className += ' icon-' + backpackItem.id + '_0';
 
                     if(backpackItem.texture_path){
                         inventoryItemIcon.className += ' custom-icon';
@@ -453,8 +453,6 @@ document.addEventListener('DOMContentLoaded', function(){
 
         if(window.innerWidth > 1570 && oldWidth <= 1570)
             document.getElementById("skin_display").appendChild(skinViewer.domElement);
-
-        tippy('*[data-tippy-content]');
 
         if(skinViewer){
             if(playerModel.offsetWidth / playerModel.offsetHeight < 0.6)

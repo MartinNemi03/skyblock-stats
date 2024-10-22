@@ -4,6 +4,7 @@ const leveling = require('./leveling');
 const moment = require('moment');
 const { getLevelByXp } = require('../lib');
 const _ = require('lodash');
+const { leveling_xp } = require('./leveling');
 require('moment-duration-format')(moment);
 
 const defaultOptions = {
@@ -23,57 +24,22 @@ const raceFormat = x => {
     return raceDuration;
 };
 
-const skillFormat = xp => {
-    const xp_table = leveling.leveling_xp;
+const skillFormat = (xp, type) => {
+    const skill = type.split('_').slice(0, -1).pop();
 
-    let levelObj = {
-        xp: 0,
-        level: 0,
-        xpCurrent: 0,
-        xpForNext: xp_table[1],
-        progress: 0
-    };
+    let xp_table;
 
-    let xpTotal = 0;
-    let level = 0;
-
-    let xpForNext = Infinity;
-
-    let maxLevel = Object.keys(xp_table).sort((a, b) => Number(a) - Number(b)).map(a => Number(a)).pop();
-
-    for(let x = 1; x <= maxLevel; x++){
-        xpTotal += xp_table[x];
-
-        if(xpTotal > xp){
-            xpTotal -= xp_table[x];
+    switch(skill){
+        case 'runecrafting':
+            xp_table = leveling.runecrafting_xp;
             break;
-        }else{
-            level = x;
-        }
+        case 'social2':
+            xp_table = leveling.social2_xp;
+            break;
+        default:
+            xp_table = {...leveling.leveling_xp, ...leveling.xp_past_50};
     }
 
-    let xpCurrent = Math.floor(xp - xpTotal);
-
-    if(level < maxLevel)
-        xpForNext = Math.ceil(xp_table[level + 1]);
-
-    let progress = Math.max(0, Math.min(xpCurrent / xpForNext, 1));
-
-    levelObj = {
-        xp,
-        level,
-        maxLevel,
-        xpCurrent,
-        xpForNext,
-        progress
-    };
-
-    return `Level ${levelObj.level} + ${levelObj.xpCurrent.toLocaleString()} XP`;
-};
-
-const skillFormatRunecrafting = xp => {
-    const xp_table = leveling.runecrafting_xp;
-
     let levelObj = {
         xp: 0,
         level: 0,
@@ -87,7 +53,7 @@ const skillFormatRunecrafting = xp => {
 
     let xpForNext = Infinity;
 
-    let maxLevel = Object.keys(xp_table).sort((a, b) => Number(a) - Number(b)).map(a => Number(a)).pop();
+    let maxLevel = leveling.skills_cap[skill];
 
     for(let x = 1; x <= maxLevel; x++){
         xpTotal += xp_table[x];
@@ -167,6 +133,8 @@ const skillFormatDungeon = xp => {
     return `Level ${levelObj.level} + ${levelObj.xpCurrent.toLocaleString()} XP`;
 };
 
+const maxAverageLevel = 54 + 1 / 2.25;
+
 const overrides = {
     bank: {
         mappedBy: 'profile_id'
@@ -176,8 +144,34 @@ const overrides = {
         mappedBy: 'profile_id'
     },
 
+    fastest_target_practice: {
+        sortedBy: 1
+    },
+
     'player_kills_k/d': {
         name: 'Player K/D'
+    },
+
+    first_joined: {
+        sortedBy: 1,
+        format: x => new Date(Number(x)).toISOString().replace('T', ' ').split('.')[0]
+    },
+
+    average_level: {
+        format: x => x >= maxAverageLevel ? `${maxAverageLevel.toFixed(2)} (${((x-maxAverageLevel)*1000000).toFixed(2)}b xp)` : Number(x).toFixed(2)
+    },
+
+    skill_social2_xp: {
+        name: 'Skill Social Xp'
+    },
+
+    lowest_uuid: {
+        sortedBy: 1,
+        format: (x, key, uuid) => uuid.substring(0, 12) + '…'
+    },
+
+    highest_uuid: {
+        format: (x, key, uuid) => uuid.substring(0, 12) + '…'
     }
 };
 
@@ -219,7 +213,7 @@ module.exports = {
         if(lbName.startsWith('skill_')){
             const skill = lbName.split("_")[1];
 
-            options['format'] = skill == 'runecrafting' ? skillFormatRunecrafting : skillFormat;
+            options['format'] = skillFormat;
         }
 
         if(lbName.startsWith('dungeons_') && lbName.endsWith('_xp'))
@@ -234,6 +228,10 @@ module.exports = {
                 options['name'] = `Kills Tarantula Broodfather Tier ${tier}`;
             else if(lbName.startsWith('wolf_slayer'))
                 options['name'] = `Kills Sven Packmaster Tier ${tier}`;
+            else if(lbName.startsWith('enderman_slayer'))
+                options['name'] = `Kills Voidgloom Seraph Tier ${tier}`;
+            else if(lbName.startsWith('blaze_slayer'))
+                options['name'] = `Kills Inferno Demonlord Tier ${tier}`;
         }
 
         if(lbName.startsWith('kills_') || lbName.startsWith('deaths_')){

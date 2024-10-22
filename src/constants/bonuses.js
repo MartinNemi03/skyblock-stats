@@ -26,6 +26,10 @@ module.exports = {
             1: {
                 crit_chance: 0.5,
                 damage_increase: 0.04
+            },
+            51: {
+                crit_chance: 0.5,
+                damage_increase: 0.01
             }
         },
 
@@ -64,10 +68,12 @@ module.exports = {
 
         enchanting_skill: {
             1: {
-                intelligence: 1
+                intelligence: 1,
+                ability_damage: 0.5
             },
             15: {
-                intelligence: 2
+                intelligence: 2,
+                ability_damage: 0.5
             }
         },
 
@@ -87,6 +93,12 @@ module.exports = {
         },
 
         runecrafting_skill: {
+            1: {
+
+            }
+        },
+
+        social2_skill: {
             1: {
 
             }

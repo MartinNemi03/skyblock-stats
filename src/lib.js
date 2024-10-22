@@ -4,13 +4,14 @@ const nbt = require('prismarine-nbt');
 const util = require('util');
 const mcData = require("minecraft-data")("1.8.9");
 const _ = require('lodash');
-const constants = require('./constants');
 const helper = require('./helper');
 const { getId } = helper;
 const axios = require('axios');
 const moment = require('moment');
 const { v4 } = require('uuid');
 const retry = require('async-retry');
+const LilyWeight = require('lilyweight');
+const constants = require('./constants');
 
 const credentials = require('./../credentials.json');
 
@@ -31,15 +32,40 @@ const Redis = require("ioredis");
 const redisClient = new Redis();
 
 const customResources = require('./custom-resources');
-const { SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS } = require('constants');
 
 const parseNbt = util.promisify(nbt.parse);
 
 const rarity_order = ['special', 'mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common'];
 
-const petTiers = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+const petTiers = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+
+const weightSkills = ['enchanting', 'taming', 'alchemy', 'mining', 'farming', 'foraging', 'combat', 'fishing'];
+const weightSlayers = ['zombie', 'spider', 'wolf', 'enderman', 'blaze'];
+
+const trophyTiers = ['bronze', 'silver', 'gold', 'diamond'];
 
 const MAX_SOULS = 209;
+
+const BASE_SACK = {
+    Count: 1,
+    Damage: 3,
+    id: 397,
+    rarity: 'epic'
+};
+
+let hypixelItems = {};
+
+const hypixelItemsResponse = axios('https://api.hypixel.net/resources/skyblock/items').then(response => {
+    for (const item of response?.data?.items ?? []) {
+        hypixelItems[item.id] = item;
+    }
+});
+
+let slothpixelItems = {};
+
+const slothpixelItemsResponse = axios('https://api.slothpixel.me/api/skyblock/items').then(response => {
+    slothpixelItems = response?.data ?? {};
+});
 
 function replaceAll(target, search, replacement){
     return target.split(search).join(replacement);
@@ -48,17 +74,19 @@ function replaceAll(target, search, replacement){
 function getMinMax(profiles, min, ...path){
     let output = null;
 
-    const compareValues = profiles.map(a => helper.getPath(a, ...path)).filter(a => !isNaN(a));
+    const compareValues = 
+    profiles.map(a => { return { gamemode: a.gamemode, value: helper.getPath(a, ...path) }})
+    .filter(a => !isNaN(a.value));
 
     if(compareValues.length == 0)
         return output;
 
     if(min)
-        output = Math.min(...compareValues);
+        output = compareValues.reduce((prev, obj) => { return obj.value < prev.value? obj : prev; });
     else
-        output = Math.max(...compareValues);
+        output = compareValues.reduce((prev, obj) => { return obj.value > prev.value? obj : prev; });
 
-    if(isNaN(output))
+    if(isNaN(output.value))
         return null;
 
     return output;
@@ -108,14 +136,49 @@ function getXpByLevel(level, type){
     return output;
 }
 
-function getLevelByXp(xp, type = 'regular', hypixelProfile){
+function getBestiaryLevel(b) {
+    let kills = b.kills;
+    let killsLeft = 0;
+    let level = 0;
+    let nextStep;
+
+    const steps = b.boss ? constants.bestiary_boss_level : constants.bestiary_level;
+
+    while (level < (b.max ?? Infinity)) {
+        const step = Object.keys(steps).slice().reverse().find(a => a <= level + 1);
+        nextStep = steps[step];
+
+        if (kills >= nextStep) {
+            level++;
+            kills -= nextStep;
+            continue;
+        }
+
+        killsLeft = nextStep - kills;
+        break;
+    }
+
+    return {
+        level,
+        max: level == b.max,
+        killsLeft,
+        currentKills: kills,
+        nextStep
+    };
+}
+
+function getLevelByXp(xp, type = 'regular', levelCap, personalCap){
     let xp_table;
 
     switch(type){
         case 'runecrafting':
             xp_table = constants.runecrafting_xp;
             break;
+        case 'social2':
+            xp_table = constants.social2_xp;
+            break;
         case 'dungeon':
+        case 'dungeon_class':
             xp_table = constants.dungeon_xp;
             break;
         default:
@@ -138,13 +201,17 @@ function getLevelByXp(xp, type = 'regular', hypixelProfile){
     let xpForNext = Infinity;
 
     let maxLevel = Object.keys(xp_table).sort((a, b) => Number(a) - Number(b)).map(a => Number(a)).pop();
+
+    if (type == 'dungeon_class')
+        maxLevel = 50;
+
     let maxLevelCap = maxLevel;
 
-    if(constants.skills_cap[type] > maxLevel && type in constants.skills_achievements){
+    if(levelCap > maxLevel){
         xp_table = Object.assign(constants.xp_past_50, xp_table);
 
         maxLevel = Object.keys(xp_table).sort((a, b) => Number(a) - Number(b)).map(a => Number(a)).pop();
-        maxLevelCap = Math.max(maxLevelCap, hypixelProfile.achievements[constants.skills_achievements[type]]);
+        maxLevelCap = personalCap;
     }
 
     for(let x = 1; x <= maxLevelCap; x++){
@@ -185,7 +252,7 @@ function getSlayerLevel(slayer, slayerName){
     const maxLevel = Math.max(...Object.keys(constants.slayer_xp[slayerName]));
 
     for(const level_name in claimed_levels){
-        const level = parseInt(level_name.split("_").pop());
+        const level = parseInt(level_name.split("_")[1]);
 
         if(level > currentLevel)
             currentLevel = level;
@@ -201,6 +268,22 @@ function getSlayerLevel(slayer, slayerName){
     }
 
     return { currentLevel, xp, maxLevel, progress, xpForNext };
+}
+
+function getDungeonRankByScore(score) {
+    if (score < 100) {
+        return 'd';
+    } else if (score < 160) {
+        return 'c';
+    } else if (score < 230) {
+        return 'b';
+    } else if (score < 269.5) {
+        return 'a';
+    } else if (score < 300) {
+        return 's';
+    } else {
+        return 's_plus'
+    }
 }
 
 function getPetLevel(pet){
@@ -306,6 +389,125 @@ async function getBackpackContents(arraybuf){
     return items;
 }
 
+async function getSacks(sacks_counts) {
+    await hypixelItemsResponse;
+    await slothpixelItemsResponse;
+
+    const sacks = [];
+
+    for (const sackId in constants.sacks) {
+        const sack = constants.sacks[sackId];
+
+        if (sack.items.filter(a => Object.keys(sacks_counts).includes(a)).length == 0) {
+            continue;
+        }
+
+        const sackItem = Object.assign({}, BASE_SACK);
+
+        sackItem.texture_path = `/head/${sack.texture}`;
+        sackItem.display_name = _.startCase(sackId.toLowerCase());
+        sackItem.tag = {
+            display: {
+                Lore: [],
+                Name: `§5${sackItem.display_name}`
+            }
+        };
+
+        if (sackId == 'GEMSTONE_SACK') {
+            let line = '';
+
+            for (const tier in constants.gem_tiers) {
+                line += constants.tier_colors[constants.gem_tiers[tier]];
+                line += _.startCase(tier.toLowerCase());
+
+                if (tier != 'PERFECT') {
+                    line += '§8 / ';
+                }
+            }
+
+            sackItem.tag.display.Lore.push(line, '');
+
+            for (const gem in constants.gem_types) {
+                let line = constants.gem_types[gem];
+                line += `${_.startCase(gem.toLowerCase())}§8: `;
+
+                for (const tier in constants.gem_tiers) {
+                    line += constants.tier_colors[constants.gem_tiers[tier]];
+                    line += (sacks_counts[`${tier}_${gem}_GEM`] ?? 0).toLocaleString();
+
+                    if (tier != 'PERFECT') {
+                        line += '§8 / ';
+                    }
+                }
+
+                sackItem.tag.display.Lore.push(line);
+            }
+        } else {
+            sackItem.containsItems = [];
+
+            for (const [index, item] of sack.items.entries()) {
+                const slothpixelItem = slothpixelItems[item];
+                const hypixelItem = hypixelItems[item];
+
+                const itemName = slothpixelItem?.name ?? hypixelItem?.name ?? _.startCase(item.toLowerCase());
+                const tier = slothpixelItem?.tier ?? (hypixelItem?.tier ?? 'common').toLowerCase();
+                
+                sackItem.tag.display.Lore.push(
+                    `${constants.tier_colors[tier]}${itemName}§8: §e${(sacks_counts[item] ?? 0).toLocaleString()}`
+                )            
+
+                if (slothpixelItem == null && hypixelItem?.skin == null) {
+                    continue;
+                }
+
+                const sackContent = {
+                    Count: 1,
+                    sack_count: sacks_counts[item],
+                    Damage: slothpixelItem?.damage ?? 0,
+                    id: slothpixelItem?.item_id ?? 397,
+                    itemIndex: index,
+                    display_name: itemName,
+                    tag: {
+                        display: {
+                            Name: `§a${itemName}`,
+                            Lore: [
+                                `§8Stored: §e${(sacks_counts[item] ?? 0).toLocaleString()}`
+                            ]
+                        }
+                    }
+                };
+
+                if (hypixelItem?.glowing) {
+                    sackContent.tag.ench = [];
+                }
+
+                if (sackContent.id == 397 && slothpixelItem?.texture) {
+                    sackContent.texture_path = `/head/${slothpixelItem.texture}`;
+                }
+
+                if (sackContent.id == 397 && slothpixelItem?.texture == null && hypixelItem?.skin) {
+                    try{
+                        const json = JSON.parse(Buffer.from(hypixelItem.skin, 'base64').toString());
+                        const url = json.textures.SKIN.url;
+
+                        const texture = url.split("/").pop();
+
+                        if (texture.length == 64) {
+                            sackContent.texture_path = `/head/${texture}`;
+                        }
+                    }catch(e){ }
+                }
+
+                sackItem.containsItems.push(sackContent);
+            }
+        }
+
+        sacks.push(sackItem);
+    }
+
+    return sacks;
+}
+
 // Process items returned by API
 async function getItems(base64, customTextures = false, packs, cacheOnly = false){
     // API stores data as base64 encoded gzipped Minecraft NBT data
@@ -406,7 +608,7 @@ async function getItems(base64, customTextures = false, packs, cacheOnly = false
 
             let hasAnvilUses = false;
 
-            if(helper.hasPath(item, 'tag', 'ExtraAttributes', 'anvil_uses')){
+            /*if(helper.hasPath(item, 'tag', 'ExtraAttributes', 'anvil_uses')){
                 let { anvil_uses } = item.tag.ExtraAttributes;
 
                 let hot_potato_count = 0;
@@ -421,7 +623,7 @@ async function getItems(base64, customTextures = false, packs, cacheOnly = false
 
                     itemLore.push('', `§7Anvil Uses: §c${anvil_uses}`);
                 }
-            }
+            }*/
 
             if('expertise' in enchantments && helper.hasPath(item, 'tag', 'ExtraAttributes', 'expertise_kills')){
                 const { expertise } = enchantments;
@@ -514,9 +716,6 @@ async function getItems(base64, customTextures = false, packs, cacheOnly = false
             if(item.type == 'hatccessory')
                 item.type = 'accessory';
 
-            if(item.type != null && item.type.startsWith('dungeon'))
-                item.Damage = 0;
-
             // fix custom maps texture
             if(item.id == 358){
                 item.id = 395;
@@ -584,6 +783,10 @@ async function getItems(base64, customTextures = false, packs, cacheOnly = false
 
             if(getId(item) == 'SPEED_ARTIFACT')
                 item.stats.speed = 5;
+            
+            // Apply Frozen Chicken bonus
+            if(getId(item) == 'FROZEN_CHICKEN')
+                item.stats.speed = 1;
         }
 
         // Workaround for detecting item types if another language is set by the player on Hypixel
@@ -770,6 +973,14 @@ module.exports = {
         let quiver = 'quiver' in profile ? await getItems(profile.quiver.data, customTextures, packs, cacheOnly) : [];
         let potion_bag = 'potion_bag' in profile ? await getItems(profile.potion_bag.data, customTextures, packs, cacheOnly) : [];
         let candy_bag = 'candy_inventory_contents' in profile ? await getItems(profile.candy_inventory_contents.data, customTextures, packs, cacheOnly) : [];
+        let sacks = 'sacks_counts' in profile ? await getSacks(profile.sacks_counts) : [];
+        let storage = [];
+
+        if('backpack_contents' in profile){
+            for(const backpack of Object.values(profile.backpack_contents)){
+                storage.push(...await getItems(backpack.data, customTextures, packs, cacheOnly));
+            }
+        }
 
         const wardrobeColumns = wardrobe_inventory.length / 4;
 
@@ -802,8 +1013,9 @@ module.exports = {
         output.fishing_bag = fishing_bag;
         output.quiver = quiver;
         output.potion_bag = potion_bag;
-
-        const all_items = armor.concat(inventory, enderchest, talisman_bag, fishing_bag, quiver, potion_bag, wardrobe_inventory);
+        output.storage = storage;
+        output.sacks = sacks;
+        const all_items = armor.concat(inventory, enderchest, talisman_bag, fishing_bag, quiver, potion_bag, wardrobe_inventory, storage, sacks);
 
         for(const [index, item] of all_items.entries()){
             item.item_index = index;
@@ -977,7 +1189,7 @@ module.exports = {
                 continue;
 
             output.weapons.push(...item.containsItems.filter(a => a.type != null && (a.type.endsWith('sword') || a.type.endsWith('bow'))));
-            output.rods.push(...item.containsItems.filter(a => a.type != null && a.type.endsWith('fishing rod')));
+            output.rods.push(...item.containsItems.filter(a => a.type != null && (a.type.endsWith('fishing rod')|| a.type.endsWith('fishing weapon'))));
         }
 
         // Check if inventory access disabled by user
@@ -1146,21 +1358,25 @@ module.exports = {
         || helper.hasPath(userProfile, 'experience_skill_runecrafting')){
             let average_level_no_progress = 0;
 
-            skillLevels = {
-                taming: getLevelByXp(userProfile.experience_skill_taming || 0, 'taming', hypixelProfile),
-                farming: getLevelByXp(userProfile.experience_skill_farming || 0, 'farming', hypixelProfile),
-                mining: getLevelByXp(userProfile.experience_skill_mining || 0, 'mining', hypixelProfile),
-                combat: getLevelByXp(userProfile.experience_skill_combat || 0, 'combat', hypixelProfile),
-                foraging: getLevelByXp(userProfile.experience_skill_foraging || 0, 'foraging', hypixelProfile),
-                fishing: getLevelByXp(userProfile.experience_skill_fishing || 0, 'fishing', hypixelProfile),
-                enchanting: getLevelByXp(userProfile.experience_skill_enchanting || 0, 'enchanting', hypixelProfile),
-                alchemy: getLevelByXp(userProfile.experience_skill_alchemy || 0, 'alchemy', hypixelProfile),
-                carpentry: getLevelByXp(userProfile.experience_skill_carpentry || 0, 'carpentry', hypixelProfile),
-                runecrafting: getLevelByXp(userProfile.experience_skill_runecrafting || 0, 'runecrafting'),
-            };
+            const levelCaps = Object.assign({}, constants.skills_cap);
+            const skillLevels = {};
+
+            for(const skill in levelCaps){
+                let levelCap = levelCaps[skill];
+                let personalCap = levelCap;
+
+                if(skill == 'farming'){
+                    if(helper.hasPath(userProfile, 'jacob2', 'perks', 'farming_level_cap'))
+                        personalCap = 50 + (userProfile['jacob2'].perks.farming_level_cap || 0);
+                    else
+                        personalCap = 50;
+                }
+
+                skillLevels[skill] = getLevelByXp(userProfile[`experience_skill_${skill}`] || 0, skill, levelCap, personalCap);
+            }
 
             for(let skill in skillLevels){
-                if(skill != 'runecrafting' && skill != 'carpentry'){
+                if(skill != 'runecrafting' && skill != 'social2'){
                     average_level += skillLevels[skill].level + skillLevels[skill].progress;
                     average_level_no_progress += skillLevels[skill].level;
 
@@ -1183,6 +1399,7 @@ module.exports = {
                 enchanting: hypixelProfile.achievements.skyblock_augmentation || 0,
                 alchemy: hypixelProfile.achievements.skyblock_concoctor || 0,
                 taming: hypixelProfile.achievements.skyblock_domesticator || 0,
+                carpentry: 0
             };
 
             output.levels = {};
@@ -1196,8 +1413,8 @@ module.exports = {
                     continue;
 
                 skillsAmount++;
-                average_level += skillLevels[skill];
 
+                average_level += output.levels[skill].level;
                 totalSkillXp += output.levels[skill].xp;
             }
 
@@ -1230,6 +1447,139 @@ module.exports = {
         return output;
     },
 
+    getDungeons: async (userProfile, hypixelProfile) => {
+        const output = {};
+
+        const { dungeons } = userProfile;
+
+        if (dungeons == null || dungeons.dungeon_types == null)
+            return output;
+
+        const { player_classes, dungeon_journal, dungeon_types } = dungeons;
+        const { catacombs, master_catacombs } = dungeon_types;
+
+        const CATACOMBS_KEYS = [
+            'times_played', 
+            'tier_completions', 
+            'fastest_time',
+            'fastest_time_s',
+            'fastest_time_s_plus',
+            'best_score', 
+            'best_runs',
+            'mobs_killed', 
+            'most_mobs_killed', 
+            'most_damage_healer', 
+            'most_damage_mage', 
+            'most_damage_berserk', 
+            'most_damage_tank', 
+            'most_damage_archer', 
+            'most_healing', 
+            'watcher_kills',
+            'milestone_completions'
+        ];
+
+        output.catacombs = { highest_tier_completed: catacombs?.highest_tier_completed || 'None', floors: [] };
+        output.master_catacombs = { highest_tier_completed: master_catacombs?.highest_tier_completed || 'None', floors: [] };
+
+        for (let i = 0; i <= 7; i++) {
+            const floor = { floor: i };
+
+            for (const key of CATACOMBS_KEYS) {
+                floor[key] = catacombs?.[key]?.[i];
+            }
+
+            floor.best_rank = getDungeonRankByScore(floor?.best_score ?? 0);
+
+            if (floor?.times_played ?? 0 > 0)
+                output.catacombs.floors.push(floor);
+
+            // master mode has no entrance, skip before reaching floor 1
+            if (i == 0)
+                continue;
+
+            const master_floor = { floor: i };
+
+            // master mode has no times played count, skip it
+            for (const key of CATACOMBS_KEYS.slice(1)) {
+                master_floor[key] = master_catacombs?.[key]?.[i];
+            }
+
+            master_floor.best_rank = getDungeonRankByScore(master_floor?.best_score ?? 0);
+
+            if (master_floor?.tier_completions ?? 0 > 0)
+                output.master_catacombs.floors.push(master_floor);
+        }
+
+        output.collections = [];
+
+        for (const [index, boss] of Object.keys(constants.boss_collections).entries()) {
+            const collection = constants.boss_collections[boss];
+            const amount = (output.catacombs.floors[index + 1]?.tier_completions ?? 0)
+            + (output.master_catacombs.floors[index]?.tier_completions ?? 0);
+
+            let tier = 0;
+            const maxTier = collection.length;
+
+            for (const [index, required] of collection.entries()) {
+                if (amount < required) {
+                    break;
+                }
+
+                tier++;
+            }
+
+            output.collections.push({
+                amount,
+                boss,
+                floor: index + 1,
+                tier,
+                maxTier
+            });
+        }
+
+        output.level = getLevelByXp(catacombs.experience, 'dungeon');
+        output.level.maxLevel = 50;
+
+        const CLASSES = [
+            'healer',
+            'mage',
+            'berserk',
+            'archer',
+            'tank'
+        ];
+
+        output.classes = {};
+        let total_class_level = 0;
+
+        for (const key of CLASSES) {
+            output.classes[key] = getLevelByXp(player_classes?.[key]?.experience || 0, 'dungeon_class');
+            total_class_level += output.classes[key].level + output.classes[key].progress;
+        }
+
+        output.average_class_level = total_class_level / CLASSES.length;
+
+        const ESSENCES = [
+            'undead',
+            'diamond',
+            'dragon',
+            'gold',
+            'ice',
+            'wither',
+            'spider',
+            'crimson'
+        ];
+
+        output.secrets = hypixelProfile.achievements.skyblock_treasure_hunter ?? 0;
+
+        output.essence = {};
+
+        for (const key of ESSENCES) {
+            output.essence[key] = userProfile?.[`essence_${key}`] || 0;
+        }
+
+        return output;
+    },
+
     getStats: async (db, profile, allProfiles, items, cacheOnly = false) => {
         let output = {};
 
@@ -1255,6 +1605,8 @@ module.exports = {
 
         output.fairy_souls = { collected: userProfile.fairy_souls_collected, total: MAX_SOULS, progress: Math.min(userProfile.fairy_souls_collected / MAX_SOULS, 1) };
 
+        output.dungeons = await module.exports.getDungeons(userProfile, hypixelProfile);
+
         const { levels, average_level, average_level_no_progress, total_skill_xp, average_level_rank } = await module.exports.getLevels(userProfile, hypixelProfile);
 
         output.levels = levels;
@@ -1269,7 +1621,7 @@ module.exports = {
             if(levels[skill].level == 0)
                 continue;
 
-            const skillBonus = getBonusStat(levels[skill].level || levels[skill], `${skill}_skill`, 50, 1);
+            const skillBonus = getBonusStat(levels[skill].level || levels[skill], `${skill}_skill`, levels[skill].maxLevel, 1);
 
             output.skill_bonus[skill] = Object.assign({}, skillBonus);
 
@@ -1291,7 +1643,7 @@ module.exports = {
 
                     slayers[slayerName] = {};
 
-                    if(!helper.hasPath(slayer, 'claimed_levels'))
+                    if(!helper.hasPath(slayer, 'claimed_levels') || constants.slayer_xp[slayerName] == null)
                         continue;
 
                     slayers[slayerName].level = getSlayerLevel(slayer, slayerName);
@@ -1613,6 +1965,42 @@ module.exports = {
         output.kills = killsDeaths.filter(a => a.type == 'kills').sort((a, b) => b.amount - a.amount);
         output.deaths = killsDeaths.filter(a => a.type == 'deaths').sort((a, b) => b.amount - a.amount);
 
+        const bestiaryEntries = [];
+
+        let totalTiers = 0;
+        let totalFamilies = 0;
+        
+        for (const area in constants.bestiary_areas) {
+            const bestiaryArea = constants.bestiary_areas[area];
+
+            for (const bestiaryEntry of bestiaryArea) {
+                let b = { ...bestiaryEntry };
+
+                b.kills = 0;
+
+                for (const id of b.id) {
+                    b.kills += userProfile?.bestiary?.[`kills_family_${id}`] ?? 0;
+                }
+
+                if (b.kills > 0) {
+                    totalFamilies++;
+                }
+
+                b = { ...b, ...getBestiaryLevel(b) };
+
+                totalTiers += b.level;
+
+                bestiaryEntries.push(b);
+            }
+        }
+
+        output.bestiary = {
+            level: Math.floor(totalTiers / 10),
+            tiers: totalTiers,
+            families: totalFamilies,
+            entries: bestiaryEntries
+        };
+
         const playerObject = await helper.resolveUsernameOrUuid(profile.uuid, db, cacheOnly);
 
         output.display_name = playerObject.display_name;
@@ -1656,6 +2044,20 @@ module.exports = {
             };
         }
 
+        const lilyWeightArgs = [
+            weightSkills.map(a => getLevelByXp(userProfile[`experience_skill_${a}`] || 0, a, 60, 60).level),
+            weightSkills.map(a => userProfile[`experience_skill_${a}`] || 0),
+            helper.hasPath(userProfile, 'dungeons', 'dungeon_types', 'catacombs', 'tier_completions') 
+            ? userProfile.dungeons.dungeon_types.catacombs.tier_completions : {},
+            helper.hasPath(userProfile, 'dungeons', 'dungeon_types', 'master_catacombs', 'tier_completions')
+            ? userProfile.dungeons.dungeon_types.master_catacombs.tier_completions : {},
+            helper.hasPath(userProfile, 'dungeons', 'dungeon_types', 'catacombs', 'experience')
+            ? userProfile.dungeons.dungeon_types.catacombs.experience : 0,
+            weightSlayers.map(a => helper.hasPath(userProfile, 'slayer_bosses', a, 'xp') ? userProfile.slayer_bosses[a].xp : 0)
+        ];
+
+        output.lilyweight = LilyWeight.getWeightRaw(...lilyWeightArgs);
+
         if(helper.hasPath(profile, 'banking', 'balance'))
             output.bank = profile.banking.balance;
 
@@ -1691,12 +2093,26 @@ module.exports = {
         output.bag_sizes = await module.exports.getBagSizes(output.collections);
         output.social = hypixelProfile.socials;
 
+        let sea_creatures_killed = 0;
+
+        for(const sc of constants.sea_creatures){
+            if(constants.mob_mounts.hasOwnProperty(sc.id)){
+                for(const mount of constants.mob_mounts[sc.id])
+                    sea_creatures_killed += userProfile.stats[`kills_${mount}`] || 0;
+
+                continue;
+            }
+
+            sea_creatures_killed += userProfile.stats[`kills_${sc.id}`] || 0;
+        }
+
         output.fishing = {
             total: userProfile.stats.items_fished || 0,
             treasure: userProfile.stats.items_fished_treasure || 0,
             treasure_large: userProfile.stats.items_fished_large_treasure || 0,
             shredder_fished: userProfile.stats.shredder_fished || 0,
             shredder_bait: userProfile.stats.shredder_bait || 0,
+            sea_creatures_killed
         };
 
         const misc = {};
@@ -1818,8 +2234,10 @@ module.exports = {
 
             pet.rarity = pet.tier.toLowerCase();
 
-            if(pet.heldItem == 'PET_ITEM_TIER_BOOST')
-                pet.rarity = petTiers[Math.min(petTiers.length - 1, petTiers.indexOf(pet.rarity) + 1)];
+            const maxRarity = pet.heldItem == 'PET_ITEM_TIER_BOOST' ? petTiers.length - 2 : petTiers.length - 1;
+
+            if(constants.pet_rarity_boost_items.includes(pet.heldItem))
+                pet.rarity = petTiers[Math.min(maxRarity, petTiers.indexOf(pet.rarity) + 1)];
 
             pet.level = constants.pet_level(pet.tier, pet.exp);
             pet.stats = {};
@@ -2017,7 +2435,7 @@ module.exports = {
 
             const collectionData =  constants.collection_data.filter(a => a.skyblockId == type)[0];
 
-            if('tiers' in collectionData){
+            if(collectionData != null && 'tiers' in collectionData){
                 for(const tier of collectionData.tiers){
                     if(totalAmount >= tier.amountRequired){
                         output[type].tier = Math.max(tier.tier, output[type].tier);
@@ -2057,7 +2475,6 @@ module.exports = {
 
                 paramPlayer = uuid;
             }catch(e){
-                console.error(e);
                 throw e;
             }
         }
@@ -2070,38 +2487,36 @@ module.exports = {
             uuid: paramPlayer
         };
 
-        let allSkyBlockProfiles = [];
+        let allSkyBlockProfiles = [], profileObject = { last_update: 0}, lastCachedSave = 0;
 
-        let profileObject = await db
-        .collection('profileStore')
-        .findOne({ uuid: paramPlayer });
+        if(!credentials.cachingDisabled){
+            let profileObject = await db
+            .collection('profileStore')
+            .findOne({ uuid: paramPlayer });
 
-        let lastCachedSave = 0;
+            if(profileObject){
+                const profileData = db
+                .collection('profileCache')
+                .find({ profile_id: { $in: Object.keys(profileObject.profiles) } });
 
-        if(profileObject){
-            const profileData = db
-            .collection('profileCache')
-            .find({ profile_id: { $in: Object.keys(profileObject.profiles) } });
+                for await(const doc of profileData){
+                    if(!helper.hasPath(doc, 'members', paramPlayer))
+                        continue;
 
-            for await(const doc of profileData){
-                if(!helper.hasPath(doc, 'members', paramPlayer))
-                    continue;
+                    Object.assign(doc, profileObject.profiles[doc.profile_id]);
 
-                Object.assign(doc, profileObject.profiles[doc.profile_id]);
+                    allSkyBlockProfiles.push(doc);
 
-                allSkyBlockProfiles.push(doc);
-
-                lastCachedSave = Math.max(lastCachedSave, doc.members[paramPlayer].last_save || 0);
+                    lastCachedSave = Math.max(lastCachedSave, doc.members[paramPlayer].last_save || 0);
+                }
             }
-        }else{
-            profileObject = { last_update: 0 };
         }
 
         let response = null;
 
         if(!options.cacheOnly &&
         (Date.now() - lastCachedSave > 190 * 1000 && Date.now() - lastCachedSave < 300 * 1000
-        || Date.now() - profileObject.last_update >= 300 * 1000)){
+        || Date.now() - profileObject.last_update >= 300 * 1000 || credentials.cachingDisabled)){
             try{
                 response = await retry(async () => {
                     return await Hypixel.get('skyblock/profiles', {
@@ -2114,8 +2529,10 @@ module.exports = {
                 if(!data.success)
                     throw "Request to Hypixel API failed. Please try again!";
 
-                if(data.profiles == null)
+                if(data.profiles == null){
+                    module.exports.clearLeaderboardPositions(db, paramPlayer).catch(console.error);
                     throw "Player has no SkyBlock profiles.";
+                }
 
                 allSkyBlockProfiles = data.profiles;
             }catch(e){
@@ -2126,8 +2543,10 @@ module.exports = {
             }
         }
 
-        if(allSkyBlockProfiles.length == 0)
+        if(allSkyBlockProfiles.length == 0){
+            module.exports.clearLeaderboardPositions(db, paramPlayer).catch(console.error);
             throw "Player has no SkyBlock profiles.";
+        }
 
         for(const profile of allSkyBlockProfiles){
             for(const member in profile.members)
@@ -2205,7 +2624,7 @@ module.exports = {
             if(!userProfile)
                 continue;
 
-            if(response && response.request.fromCache !== true){
+            if(response && response.request.fromCache !== true && !credentials.cachingDisabled){
                 const insertCache = {
                     last_update: new Date(),
                     members: _profile.members
@@ -2294,17 +2713,31 @@ module.exports = {
             }else{
                 module.exports.updateLeaderboardPositions(db, paramPlayer, allSkyBlockProfiles).catch(console.error);
             }
-            
-            db
-            .collection('profileStore')
-            .updateOne(
-                { uuid: paramPlayer },
-                { $set: insertProfileStore },
-                { upsert: true }
-            ).catch(console.error);
+
+            if(!credentials.cachingDisabled){
+                db
+                .collection('profileStore')
+                .updateOne(
+                    { uuid: paramPlayer },
+                    { $set: insertProfileStore },
+                    { upsert: true }
+                ).catch(console.error);
+            }
         }
 
         return { profile: profile, allProfiles: allSkyBlockProfiles, uuid: paramPlayer };
+    },
+
+    clearLeaderboardPositions: async (db, uuid) => {
+        const keys = await redisClient.keys('*lb_*');
+        const multi = redisClient.pipeline();
+
+        for(const key of keys){
+            multi.zrem(key, uuid);
+            multi.zrem(key, `${uuid}i`);
+        }
+
+        await multi.exec();
     },
 
     updateLeaderboardPositions: async (db, uuid, allProfiles) => {
@@ -2313,17 +2746,112 @@ module.exports = {
 
         const hypixelProfile = await helper.getRank(uuid, db, true);
 
+        const multi = redisClient.pipeline();
+        const keys = await redisClient.keys('*lb_*');
+
+        for(const key of keys){
+            multi.zrem(key, uuid);
+            multi.zrem(key, `${uuid}i`);
+        }
+
         for(const gamemode of [null, 'ironman']){
 
             const memberProfiles = [];
 
-            for(const singleProfile of allProfiles.filter(a => a.game_mode == gamemode)){
-                const userProfile = singleProfile.members[uuid];
+            const gamemodeName = gamemode != null ? `${gamemode}_` : '';
+            const values = {};
+
+            for(const singleProfile of (gamemode == null ? allProfiles : allProfiles.filter(a => a.game_mode == gamemode))){
+                const userProfile = _.cloneDeep(singleProfile.members[uuid]);
 
                 if(userProfile == null)
                     continue;
 
                 userProfile.levels = await module.exports.getLevels(userProfile, hypixelProfile);
+
+                userProfile.gemstone_powder = 0;
+                userProfile.mithril_powder = 0;
+
+                userProfile.gemstone_powder += helper.getPath(userProfile, 'mining_core', 'powder_spent_gemstone') || 0;
+                userProfile.gemstone_powder += helper.getPath(userProfile, 'mining_core', 'powder_gemstone') || 0;
+
+                userProfile.mithril_powder += helper.getPath(userProfile, 'mining_core', 'powder_spent_mithril') || 0;
+                userProfile.mithril_powder += helper.getPath(userProfile, 'mining_core', 'powder_mithril') || 0;
+
+                const lilyWeightArgs = [
+                    weightSkills.map(a => getLevelByXp(userProfile[`experience_skill_${a}`] || 0, a, 60, 60).level),
+                    weightSkills.map(a => userProfile[`experience_skill_${a}`] || 0),
+                    helper.hasPath(userProfile, 'dungeons', 'dungeon_types', 'catacombs', 'tier_completions') 
+                    ? userProfile.dungeons.dungeon_types.catacombs.tier_completions : {},
+                    helper.hasPath(userProfile, 'dungeons', 'dungeon_types', 'master_catacombs', 'tier_completions')
+                    ? userProfile.dungeons.dungeon_types.master_catacombs.tier_completions : {},
+                    helper.hasPath(userProfile, 'dungeons', 'dungeon_types', 'catacombs', 'experience')
+                    ? userProfile.dungeons.dungeon_types.catacombs.experience : 0,
+                    weightSlayers.map(a => helper.hasPath(userProfile, 'slayer_bosses', a, 'xp') ? userProfile.slayer_bosses[a].xp : 0)
+                ];
+
+                let totalTiers = 0;
+                
+                for (const area in constants.bestiary_areas) {
+                    const bestiaryArea = constants.bestiary_areas[area];
+
+                    for (const bestiaryEntry of bestiaryArea) {
+                        let b = { ...bestiaryEntry };
+
+                        b.kills = 0;
+
+                        for (const id of b.id) {
+                            b.kills += userProfile?.bestiary?.[`kills_family_${id}`] ?? 0;
+                        }
+
+                        b = { ...b, ...getBestiaryLevel(b) };
+
+                        totalTiers += b.level;
+                    }
+                }
+
+                userProfile.bestiary_milestone = totalTiers / 10;
+        
+                userProfile.lilyweight = LilyWeight.getWeightRaw(...lilyWeightArgs);
+
+                userProfile.lilyweight.skill.total = userProfile.lilyweight.skill.base + userProfile.lilyweight.skill.overflow;
+                
+                userProfile.sea_creatures_killed = 0
+
+                for(const sc of constants.sea_creatures){
+                    if(constants.mob_mounts.hasOwnProperty(sc.id)){
+                        for(const mount of constants.mob_mounts[sc.id])
+                            userProfile.sea_creatures_killed += userProfile.stats[`kills_${mount}`] || 0;
+
+                        continue;
+                    }
+
+                    userProfile.sea_creatures_killed += userProfile.stats[`kills_${sc.id}`] || 0;
+                }
+
+                userProfile.trophy_fishing = {};
+
+                const trophy_fish = userProfile.trophy_fish ?? {};
+
+                for (const tier of trophyTiers) {
+                    userProfile.trophy_fishing[`${tier}_trophy_fish_caught`] = 0;
+
+                    for (const fish of Object.keys(trophy_fish)) {
+                        if (!fish.endsWith(`_${tier}`)) {
+                            continue;
+                        }
+
+                        userProfile.trophy_fishing[`${tier}_trophy_fish_caught`] += trophy_fish[fish];
+                    }
+                }
+
+                for (const fish of Object.keys(trophy_fish)) {
+                    if (trophyTiers.includes(fish.split('_').pop())) {
+                        continue;
+                    }
+
+                    userProfile.trophy_fishing[`${fish}_caught`] = trophy_fish[fish];
+                }
 
                 let totalSlayerXp = 0;
 
@@ -2375,6 +2903,7 @@ module.exports = {
 
                 memberProfiles.push({
                     profile_id: singleProfile.profile_id,
+                    gamemode: singleProfile.game_mode,
                     data: userProfile
                 });
             }
@@ -2382,31 +2911,61 @@ module.exports = {
             if(memberProfiles.length == 0)
                 continue;
 
-            const gamemodeName = gamemode != null ? `${gamemode}_` : '';
-
-            const values = {};
+            values['lowest_uuid'] = 0;
+            values['highest_uuid'] = 0;
 
             values['pet_score'] = getMax(memberProfiles, 'data', 'pet_score');
 
             values['fairy_souls'] = getMax(memberProfiles, 'data', 'fairy_souls_collected');
+
+            values['total_mithril_powder'] = getMax(memberProfiles, 'data', 'mithril_powder');
+            values['total_gemstone_powder'] = getMax(memberProfiles, 'data', 'gemstone_powder');
+
+            values['fastest_target_practice'] = getMin(memberProfiles, 'data', 'fastest_target_practice');
+
+            for(const entry of getAllKeys(memberProfiles, 'data', 'trophy_fishing')){
+                values[entry] = getMax(memberProfiles, 'data', 'trophy_fishing', entry);
+            }
+
+            for(const tier of getAllKeys(memberProfiles, 'data', 
+            'nether_island_player_data', 'kuudra_completed_tiers')){
+                const name = tier == 'none' ? 'basic' : tier;
+
+                values[`kuudra_${name}_tier_completions`] = getMax(memberProfiles, 'data', 
+                'nether_island_player_data', 'kuudra_completed_tiers', tier);
+            }
 
             if(gamemode == 'ironman'){
                 const memberProfilesSkillsApi = memberProfiles.filter(a => a.data.experience_skill_runecrafting != null);
 
                 values['average_level'] = getMax(memberProfilesSkillsApi, 'data', 'levels', 'average_level');
                 values['total_skill_xp'] = getMax(memberProfilesSkillsApi, 'data', 'levels', 'total_skill_xp');
+                
+                if(values['average_level']?.value != null)
+                    values['average_level'].value += (values['total_skill_xp']?.value ?? 0) / 1000000000000000;
 
                 for(const skill of getAllKeys(memberProfilesSkillsApi, 'data', 'levels', 'levels'))
                     values[`skill_${skill}_xp`] = getMax(memberProfilesSkillsApi, 'data', 'levels', 'levels', skill, 'xp');
             }else{
                 values['average_level'] = getMax(memberProfiles, 'data', 'levels', 'average_level');
                 values['total_skill_xp'] = getMax(memberProfiles, 'data', 'levels', 'total_skill_xp');
+                
+                if(values['average_level']?.value != null)
+                    values['average_level'].value += (values['total_skill_xp']?.value ?? 0) / 1000000000000000;
 
                 for(const skill of getAllKeys(memberProfiles, 'data', 'levels', 'levels'))
                     values[`skill_${skill}_xp`] = getMax(memberProfiles, 'data', 'levels', 'levels', skill, 'xp');
             }
 
             values['slayer_xp'] = getMax(memberProfiles, 'data', 'slayer_xp');
+
+            values['total_nucleus_completions'] = getMax(memberProfiles, 'data', 'mining_core', 'crystals', 'jade_crystal', 'total_placed');
+
+            values['lily_weight_total'] = getMax(memberProfiles, 'data', 'lilyweight', 'total');
+            values['lily_skill_weight'] = getMax(memberProfiles, 'data', 'lilyweight', 'skill', 'total');
+            values['lily_slayer_weight'] = getMax(memberProfiles, 'data', 'lilyweight', 'slayer');
+
+            values['bestiary_milestone'] = getMax(memberProfiles, 'data', 'bestiary_milestone');
 
             let totalSlayerBossKills = 0;
 
@@ -2419,7 +2978,7 @@ module.exports = {
 
                     values[`${slayer}_slayer_boss_kills_tier_${tier}`] = getMax(memberProfiles, 'data', 'slayer_bosses', slayer, key);
 
-                    totalSlayerBossKills += values[`${slayer}_slayer_boss_kills_tier_${tier}`];
+                    totalSlayerBossKills += values[`${slayer}_slayer_boss_kills_tier_${tier}`]?.value ?? 0;
                 }
 
                 values[`${slayer}_slayer_xp`] = getMax(memberProfiles, 'data', 'slayer_bosses', slayer, 'xp');
@@ -2433,7 +2992,7 @@ module.exports = {
             for(const item of getAllKeys(memberProfiles, 'data', 'collection')){
                 values[`collection_${item.toLowerCase()}`] = getMax(memberProfiles, 'data', 'collection', item);
 
-                totalCollectedItems += values[`collection_${item.toLowerCase()}`];
+                totalCollectedItems += values[`collection_${item.toLowerCase()}`]?.value ?? 0;
             }
 
             if(totalCollectedItems > 0)
@@ -2445,29 +3004,36 @@ module.exports = {
             let playerKills = 0, playerDeaths = 0;
 
             for(const stat of getAllKeys(memberProfiles, 'data', 'stats')){
-                values[stat] = getMax(memberProfiles, 'data', 'stats', stat);
+                const leaderboard = constants.leaderboard(stat);
+
+                if(leaderboard != null && leaderboard.sortedBy > 0)
+                    values[stat] = getMin(memberProfiles, 'data', 'stats', stat);
+                else
+                    values[stat] = getMax(memberProfiles, 'data', 'stats', stat);
 
                 if(stat.endsWith('dragon')){
                     if(stat.startsWith('kills_'))
-                        totalDragonKills += values[stat];
+                        totalDragonKills += values[stat]?.value ?? 0;
                     else if(stat.startsWith('deaths_'))
-                        totalDragonDeaths += values[stat];
+                        totalDragonDeaths += values[stat]?.value ?? 0;
                     continue;
                 }
 
                 if(stat == 'kills_player')
-                    playerKills = values[stat];
+                    playerKills = values[stat]?.value ?? 0;
                 else if(stat == 'deaths_player')
-                    playerDeaths = values[stat];
+                    playerDeaths = values[stat]?.value ?? 0;
             }
 
-            values['total_dragon_kills'] = totalDragonKills;
-            values['total_dragon_deaths'] = totalDragonDeaths;
+            values['first_joined'] = getMin(memberProfiles, 'data', 'first_join');
+
+            values['total_dragon_kills'] = { value: totalDragonKills, gamemode };
+            values['total_dragon_deaths'] = { value: totalDragonDeaths, gamemode };
 
             if(playerKills >= 100)
-                values['player_kills_k/d'] = playerKills / playerDeaths;
+                values['player_kills_k/d'] = { value: playerKills / playerDeaths, gamemode };
 
-            values['dungeons_secrets'] = hypixelProfile.achievements.skyblock_treasure_hunter || 0;
+            values['dungeons_secrets'] = { value: (hypixelProfile.achievements.skyblock_treasure_hunter || 0), gamemode };
 
             const dungeonStats = [
                 'times_played', 'tier_completions', 'fastest_time', 
@@ -2484,43 +3050,53 @@ module.exports = {
             for(const dungeonType of getAllKeys(memberProfiles, 'data', 'dungeons', 'dungeon_types')){
                 values[`dungeons_${dungeonType}_xp`] = getMax(memberProfiles, 'data', 'dungeons', 'dungeon_types', dungeonType, 'experience');
 
-                for(const stat of dungeonStats)
-                    for(const floor of getAllKeys(memberProfiles, 'data', 'dungeons', 'dungeon_types', dungeonType, stat))
-                        values[`dungeons_${dungeonType}_${helper.floorName(floor)}_${statName(stat)}`] = 
-                        getMax(memberProfiles, 'data', 'dungeons', 'dungeon_types', dungeonType, stat, floor);
+                for(const stat of dungeonStats) {
+                    for(const floor of getAllKeys(memberProfiles, 'data', 'dungeons', 'dungeon_types', dungeonType, stat)) {
+                        const lbName = `dungeons_${dungeonType}_${helper.floorName(floor)}_${statName(stat)}`;
+                        const leaderboard = constants.leaderboard(lbName);
+
+                        const value = leaderboard.sortedBy > 0 
+                        ? getMin(memberProfiles, 'data', 'dungeons', 'dungeon_types', dungeonType, stat, floor)
+                        : getMax(memberProfiles, 'data', 'dungeons', 'dungeon_types', dungeonType, stat, floor);
+
+                        values[lbName] = value;
+                    }
+                }
             }
 
             for(const dungeonClass of getAllKeys(memberProfiles, 'data', 'dungeons', 'player_classes'))
                 values[`dungeons_${dungeonClass}_xp`] = getMax(memberProfiles, 'data', 'dungeons', 'player_classes', dungeonClass, 'experience');
 
-            let scKills = 0;
+            const scKills = getMax(memberProfiles, 'data', `sea_creatures_killed`)?.value ?? 0;
+            const itemsFished = getMax(memberProfiles, 'data', 'stats', `items_fished`)?.value ?? 0;
 
-            for(const sc of constants.sea_creatures){
-                if(constants.mob_mounts.hasOwnProperty(sc.id)){
-                    for(const mount of constants.mob_mounts[sc.id])
-                        scKills += getMax(memberProfiles, 'data', 'stats', `kills_${mount}`);
+            values[`sea_creature_kills`] = { value: scKills, gamemode };
+            values[`total_fishing_actions`] = { value: itemsFished + scKills, gamemode };
 
-                    continue;
-                }
-
-                scKills += getMax(memberProfiles, 'data', 'stats', `kills_${sc.id}`);
-            }
-
-            values[`total_sea_creatures_killed`] = scKills;
-            values[`total_fishing_actions`] = getMax(memberProfiles, 'data', 'stats', `items_fished`) + scKills;
-
-            const multi = redisClient.pipeline();
-
-            for(const key in values){
+            for(const key in values){                
                 if(values[key] == null)
                     continue;
 
-                multi.zadd(`${gamemodeName}lb_${key}`, values[key], uuid);
+                if(values[key].value == null)
+                    values[key] = { value: values[key] };
+
+                let member = uuid;
+
+                if(values[key].gamemode == 'ironman')
+                    member += 'i';
+
+                multi.zrem(`${gamemodeName}lb_${key}`, uuid, member);
+                multi.zadd(`${gamemodeName}lb_${key}`, values[key]?.value ?? 0, member);
             }
 
             for(const singleProfile of allProfiles){
+                let member = singleProfile.profile_id;
+
+                if(singleProfile.game_mode == 'ironman')
+                    member += 'i';
+
                 if(helper.hasPath(singleProfile, 'banking', 'balance'))
-                    multi.zadd(`${gamemodeName}lb_bank`, singleProfile.banking.balance, singleProfile.profile_id);
+                    multi.zadd(`${gamemodeName}lb_bank`, singleProfile.banking.balance, member);
 
                 const minionCrafts = [];
 
@@ -2531,35 +3107,15 @@ module.exports = {
                 multi.zadd(
                     `${gamemodeName}lb_unique_minions`,
                     _.uniq(minionCrafts).length,
-                    singleProfile.profile_id
+                    member
                 );
             }
-
-            try{
-                await multi.exec();
-            }catch(e){
-                console.error(e);
-            }
         }
-    },
-}
 
-async function init(){
-    const response = await axios('https://api.hypixel.net/resources/skyblock/collections');
-
-    if(!response.data.hasOwnProperty('collections'))
-        return;
-
-    for(const type in response.data.collections){
-        for(const itemType in response.data.collections[type].items){
-            const item = response.data.collections[type].items[itemType];
-
-            const collectionData = constants.collection_data.filter(a => a.skyblockId == itemType)[0];
-
-            collectionData.maxTier = item.maxTiers;
-            collectionData.tiers = item.tiers;
+        try{
+            await multi.exec();
+        }catch(e){
+            console.error(e);
         }
     }
-}
-
-init();
+};

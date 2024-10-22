@@ -1,4 +1,4 @@
-module.exports = {
+const leveling = {
     // XP required for each level of a skill
     leveling_xp: {
         1: 50,
@@ -69,14 +69,15 @@ module.exports = {
     skills_cap: {
         taming: 50,
         farming: 60,
-        mining: 50,
-        combat: 50,
+        mining: 60,
+        combat: 60,
         foraging: 50,
         fishing: 50,
-        enchanting: 50,
+        enchanting: 60,
         alchemy: 50,
         carpentry: 50,
-        runecrafting: 25
+        runecrafting: 25,
+        social2: 25
     },
 
     skills_achievements: {
@@ -117,6 +118,34 @@ module.exports = {
         23: 12200,
         24: 15300,
         25: 19050
+    },
+
+    social2_xp: {
+        1: 50,
+        2: 100,
+        3: 150,
+        4: 250,
+        5: 500,
+        6: 750,
+        7: 1000,
+        8: 1250,
+        9: 1500,
+        10: 2000,
+        11: 2500,
+        12: 3000,
+        13: 3750,
+        14: 4500,
+        15: 6000,
+        16: 8000,
+        17: 10000,
+        18: 12500,
+        19: 15000,
+        20: 20000,
+        21: 25000,
+        22: 30000,
+        23: 35000,
+        24: 40000,
+        25: 50000
     },
 
     dungeon_xp: {
@@ -224,7 +253,7 @@ module.exports = {
             7: 100000,
             8: 400000,
             9: 1000000
-        }
+        },
     },
 
     slayer_boss_xp: {
@@ -234,3 +263,9 @@ module.exports = {
         4: 500
     }
 };
+
+for (let i = 51; i <= 99; i++) {
+    leveling.dungeon_xp[i] = 200000000;
+}
+
+module.exports = leveling

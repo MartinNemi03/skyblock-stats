@@ -15,6 +15,25 @@ function handleError(e, res){
     });
 }
 
+async function getUserObject(usernameOrUuid, db, cacheOnly = true){
+    let isUuid = false;
+    let uuidTrimmed = usernameOrUuid;
+
+    if(usernameOrUuid.length >= 32){
+        isUuid = true;
+        uuidTrimmed = usernameOrUuid.substring(0, 32);
+    }
+
+    const userObject = await helper.resolveUsernameOrUuid(uuidTrimmed, db, true);
+
+    if(isUuid && usernameOrUuid.endsWith('i')){
+        userObject.display_name += ' ♲';
+        userObject.uuid = uuidTrimmed;
+    }
+
+    return userObject;
+}
+
 module.exports = (app, db) => {
     const productInfo = {};
     const leaderboards = [];
@@ -72,7 +91,7 @@ module.exports = (app, db) => {
         let userObject;
 
         try{
-            userObject = await helper.resolveUsernameOrUuid(req.params.playerName, db, true);
+            userObject = await getUserObject(req.params.playerName, db, true);
 
             if(userObject.uuid == userObject.display_name)
                 throw "User not found.";
@@ -91,9 +110,13 @@ module.exports = (app, db) => {
         const getRanks = redisClient.pipeline();
 
         for(const lb of leaderboards){
-            lb.sortedBy > 0 ?
-                getRanks.zrank(`${modeName}lb_${lb.key}`, uuid)
-              : getRanks.zrevrank(`${modeName}lb_${lb.key}`, uuid);
+            if(lb.sortedBy > 0){
+                getRanks.zrank(`${modeName}lb_${lb.key}`, uuid); 
+                getRanks.zrank(`${modeName}lb_${lb.key}`, `${uuid}i`);
+            }else{
+                getRanks.zrevrank(`${modeName}lb_${lb.key}`, uuid);
+                getRanks.zrevrank(`${modeName}lb_${lb.key}`, `${uuid}i`);
+            }
         }
 
         const output = { 
@@ -106,23 +129,63 @@ module.exports = (app, db) => {
 
         const positions = [];
 
+        const ranks = await getRanks.exec();
+
+        for(let i = 0; i < ranks.length; i += 2){
+            let leaderboard = { ... leaderboards[Math.floor(i / 2)] };
+
+            let resultRegular = ranks[i];
+            let resultIronman = ranks[i + 1];
+
+            if(resultRegular != null && (resultRegular[0] != null || resultRegular[1] == null || resultRegular[1] > credentials.lbCap))
+                resultRegular = null;
+
+            if(resultIronman != null && (resultIronman[0] != null || resultIronman[1] == null || resultIronman[1] > credentials.lbCap))
+                resultIronman = null;
+
+            if(resultRegular == null && resultIronman == null)
+                continue;
+
+            if(resultIronman == null || resultRegular != null && resultRegular[1] < resultIronman[1]){
+                positions.push({
+                    leaderboard,
+                    rank: resultRegular[1] + 1
+                });
+            }else{
+                leaderboard.name += ' ♲';
+
+                positions.push({
+                    leaderboard,
+                    rank: resultIronman[1] + 1,
+                    mode: 'ironman'
+                });
+            }
+        }
+
+        /*
         for(const [index, result] of (await getRanks.exec()).entries()){
             if(result[0] != null || result[1] == null || result[1] > credentials.lbCap)
                 continue;
 
-            positions.push({ leaderboard: leaderboards[index], rank: result[1] + 1 });
-        }
+            positions.push({ leaderboard: leaderboards[index], rank: result[1] + 1, mode: 'ironman' });
+        }*/
 
         const getAmounts = redisClient.pipeline();
 
-        for(const position of positions)
-            getAmounts.zscore(`lb_${position.leaderboard.key}`, uuid);
+        for(const position of positions){
+            let member = uuid;
+
+            if(position.mode == 'ironman')
+                member += 'i';
+
+            getAmounts.zscore(`${modeName}lb_${position.leaderboard.key}`, member);
+        }
         
         for(const [index, result] of (await getAmounts.exec()).entries()){
             const lb = constants.leaderboard(`lb_${positions[index].leaderboard.key}`);
 
             positions[index]['raw'] = result[1];
-            positions[index]['amount'] = lb.format(result[1]);
+            positions[index]['amount'] = lb.format(result[1], lb.key, uuid);
         }
 
         output.positions = positions.sort((a, b) => a.rank - b.rank);
@@ -172,9 +235,9 @@ module.exports = (app, db) => {
         for(let i = 0; i < results.length; i += 2){
             const lbPosition = {
                 rank: i / 2 + startIndex + 1,
-                amount: lb.format(results[i + 1]),
+                amount: lb.format(results[i + 1], lb.key, results[i]),
                 raw: results[i + 1],
-                id: results[i],
+                uuid: results[i],
                 name: (await db.collection('guilds').findOne({ gid: results[i] })).name
             };
 
@@ -210,7 +273,10 @@ module.exports = (app, db) => {
         let uuid;
 
         if(req.query.find || req.query.guild)
-            uuid = (await helper.resolveUsernameOrUuid(req.query.guild || req.query.find, db, true)).uuid;
+            uuid = (await getUserObject(req.query.guild || req.query.find, db, true)).uuid;
+
+        if(uuid && req.cacheOnly == false)
+            await lib.getProfile(db, uuid, null, { cacheOnly: false, waitForLb: true });
 
         if(req.query.guild){
             page = Math.max(1, req.query.page || 1);
@@ -235,17 +301,54 @@ module.exports = (app, db) => {
 
             const getGuildScores = redisClient.pipeline();
 
-            for(const member of guildMembers)
+            for(const member of guildMembers) {
                 getGuildScores.zscore(`${modeName}lb_${lb.key}`, member.uuid);
+                getGuildScores.zscore(`${modeName}lb_${lb.key}`, `${member.uuid}i`);
+            }
 
             let guildScores = [];
 
-            for(const [index, result] of (await getGuildScores.exec()).entries()){
+            const scores = await getGuildScores.exec();
+
+            for(let i = 0; i < scores.length; i += 2){
+                const uuid = guildMembers[i / 2].uuid.substring(0, 32);
+
+                let resultRegular = scores[i];
+                let resultIronman = scores[i + 1];
+
+                if(resultRegular != null && (resultRegular[0] != null || resultRegular[1] == null))
+                    resultRegular = null;
+
+                if(resultIronman != null && (resultIronman[0] != null || resultIronman[1] == null))
+                    resultIronman = null;
+
+                if(resultRegular == null && resultIronman == null)
+                    continue;
+
+                if(resultRegular == null 
+                    || lb.sortedBy > 0 && resultRegular > resultIronman 
+                    || lb.sortedBy < 0 && resultRegular < resultIronman){
+                    guildScores.push({
+                        uuid,
+                        score: Number(resultIronman[1]),
+                        mode: 'ironman'
+                    })
+                }else if(resultIronman == null 
+                    || lb.sortedBy > 0 && resultRegular < resultIronman 
+                    || lb.sortedBy < 0 && resultRegular > resultIronman){
+                    guildScores.push({
+                        uuid,
+                        score: Number(resultRegular[1])
+                    })
+                }
+            }
+
+            /*for(const [index, result] of (await getGuildScores.exec()).entries()){
                 if(result[1] == null)
                     continue;
 
-                guildScores.push({ uuid: guildMembers[index].uuid, score: Number(result[1]) });
-            }
+                guildScores.push({ uuid: guildMembers[index].uuid.substring(0, 32), score: Number(result[1]) });
+            }*/
 
             if(lb.sortedBy > 0)
                 guildScores = guildScores.sort((a, b) => a.score - b.score);
@@ -273,10 +376,10 @@ module.exports = (app, db) => {
             if(selfPosition){
                 output.self = {
                     rank: selfRank + 1,
-                    amount: lb.format(selfPosition.score),
+                    amount: lb.format(selfPosition.score, lb.key, selfPosition.uuid),
                     raw: selfPosition.score,
-                    uuid: selfPosition.uuid,
-                    username: (await helper.resolveUsernameOrUuid(selfPosition.uuid, db, true)).display_name,
+                    uuid: selfPosition.uuid.substring(0, 32),
+                    username: (await getUserObject(selfPosition.uuid, db, true)).display_name + (selfPosition.mode == 'ironman' ? ' ♲' : ''),
                     guild: guildObj.name
                 };
             }
@@ -289,10 +392,10 @@ module.exports = (app, db) => {
 
                 const lbPosition = {
                     rank: i + 1,
-                    amount: lb.format(position.score),
+                    amount: lb.format(position.score, lb.key, selfPosition.uuid),
                     raw: position.score,
-                    uuid: position.uuid,
-                    username: (await helper.resolveUsernameOrUuid(position.uuid, db, true)).display_name
+                    uuid: position.uuid.substring(0, 32),
+                    username: (await getUserObject(position.uuid, db, true)).display_name + (position.mode == 'ironman' ? ' ♲' : '')
                 };
 
                 output.positions.push(lbPosition);
@@ -306,27 +409,52 @@ module.exports = (app, db) => {
             if(!req.cacheOnly)
                 await lib.getProfile(db, uuid, null, { cacheOnly: false });
 
-            const rank = lb.sortedBy > 0 ?
-            await redisClient.zrank(`${modeName}lb_${lb.key}`, uuid) :
-            await redisClient.zrevrank(`${modeName}lb_${lb.key}`, uuid);
+            let rank;
+
+            if(lb.sortedBy > 0){
+                rank = await redisClient.zrank(`${modeName}lb_${lb.key}`, uuid);
+
+                if(rank == null)
+                    rank = await redisClient.zrank(`${modeName}lb_${lb.key}`, uuid + 'i')
+            }else{
+                rank = await redisClient.zrevrank(`${modeName}lb_${lb.key}`, uuid);
+
+                if(rank == null)
+                    rank = await redisClient.zrevrank(`${modeName}lb_${lb.key}`, uuid + 'i')
+            }
 
             if(rank == null){
                 res.status(404).json({ error: `Specified user not in Top ${credentials.lbCap.toLocaleString()} on ${lb.name} Leaderboard.` });
                 return;
             }
 
-            output.self = { rank: rank + 1 };
+            let score;
+
+            score = await redisClient.zscore(`${modeName}lb_${lb.key}`, uuid);
+
+            if(score == null)
+                score = await redisClient.zscore(`${modeName}lb_${lb.key}`, uuid + 'i');
+
+            output.self = { 
+                rank: rank + 1, 
+                amount: lb.format(score, lb.key, uuid),
+                raw: score,
+                uuid,
+                username: (await getUserObject(uuid, db, true)).display_name
+            };
 
             page = Math.floor(rank / count) + 1;
         }else{
             page = Math.max(1, req.query.page || 1);
         }
 
-        const maxPage = Math.floor(lbCount / count) + (lbCount % count == 0 ? 0 : 1);
+        const cappedLbCount = Math.min(lbCount, credentials.lbCap ?? Infinity)
+        const maxPage = Math.floor(cappedLbCount / count) + (cappedLbCount % count == 0 ? 0 : 1);
 
         page = Math.min(page, maxPage);
 
         output.page = page;
+        output.maxPage = maxPage;
 
         startIndex = (page - 1) * count;
         endIndex = startIndex - 1 + count;
@@ -335,19 +463,19 @@ module.exports = (app, db) => {
             await redisClient.zrange(`${modeName}lb_${lb.key}`, startIndex, endIndex, 'WITHSCORES') :
             await redisClient.zrevrange(`${modeName}lb_${lb.key}`, startIndex, endIndex, 'WITHSCORES');
 
+        const self = await redisClient.z
+
         for(let i = 0; i < results.length; i += 2){
             const lbPosition = {
                 rank: i / 2 + startIndex + 1,
-                amount: lb.format(results[i + 1]),
+                amount: lb.format(results[i + 1], lb.key, results[i]),
                 raw: results[i + 1],
-                uuid: results[i],
-                username: (await helper.resolveUsernameOrUuid(results[i], db, true)).display_name
+                uuid: results[i].substring(0, 32),
+                username: (await getUserObject(results[i], db, true)).display_name
             };
 
-            if('self' in output && output.self.rank == lbPosition.rank)
-                output.self = lbPosition;
-
-            output.positions.push(lbPosition);
+            if (lbPosition.rank <= (credentials.lbCap ?? Infinity))
+                output.positions.push(lbPosition);
         }
 
         res.json(output);
@@ -389,6 +517,9 @@ module.exports = (app, db) => {
             const output = { profiles: {} };
 
             for(const singleProfile of allProfiles){
+                if(singleProfile.members[profile.uuid] == null)
+                    continue;
+
                 const userProfile = singleProfile.members[profile.uuid];
 
                 const items = await lib.getItems(userProfile, req.query.pack);
@@ -398,7 +529,8 @@ module.exports = (app, db) => {
                     profile_id: singleProfile.profile_id,
                     cute_name: singleProfile.cute_name,
                     game_mode: singleProfile.game_mode,
-                    current: Math.max(...allProfiles.map(a => a.members[profile.uuid].last_save)) == userProfile.last_save,
+                    current: Math.max(...allProfiles.map(a => a.members[profile.uuid] != null 
+                        && a.members[profile.uuid].last_save)) == userProfile.last_save,
                     last_save: userProfile.last_save,
                     raw: userProfile,
                     items,

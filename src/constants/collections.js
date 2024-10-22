@@ -3,6 +3,14 @@ module.exports = {
 
     collection_data: [
         {
+            type: 'mining',
+            skyblockId: 'MITHRIL_ORE',
+            name: 'Mithril',
+            id: 138,
+            damage: 0,
+            maxTier: 9
+        },
+        {
             type: 'farming',
             skyblockId: 'WHEAT',
             name: 'Wheat',
@@ -478,5 +486,29 @@ module.exports = {
             damage: 0,
             maxTier: 9
         }
-    ]
+    ],
+
+    boss_collections: {
+        'Bonzo': [
+            25, 50, 100, 150, 250, 1000
+        ],
+        'Scarf': [
+            25, 50, 100, 150, 250, 1000
+        ],
+        'The Professor': [
+            25, 50, 100, 150, 250, 1000
+        ],
+        'Thorn': [
+            50, 100, 150, 250, 400, 1000
+        ],
+        'Livid': [
+            50, 100, 150, 250, 500, 750, 1000
+        ],
+        'Sadan': [
+            50, 100, 150, 250, 500, 750, 1000
+        ],
+        'Necron': [
+            50, 100, 150, 250, 500, 750, 1000
+        ]
+    }
 };

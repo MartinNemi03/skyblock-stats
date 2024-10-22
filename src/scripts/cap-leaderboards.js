@@ -12,17 +12,17 @@ async function main(){
     const { lbCap } = credentials;
 
     async function capLeaderboards(){
-        const keys = await redisClient.keys('lb_*');
+        const keys = await redisClient.keys('*lb_*');
 
         const multi = redisClient.pipeline();
 
         for(const key of keys){
-            const lb = constants.leaderboard(key);
+            const lb = constants.leaderboard(`lb_${key.split('lb_').pop()}`);
 
             if(lb.sortedBy < 0)
-                redisClient.zremrangebyrank(key, 0, -lbCap);
+                redisClient.zremrangebyrank(key, 0, -(lbCap + 1));
             else
-                redisClient.zremrangebyrank(key, lbCap, -1);
+                redisClient.zremrangebyrank(key, (lbCap + 1), -1);
         }
 
         await multi.exec();

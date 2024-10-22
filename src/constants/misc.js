@@ -3,6 +3,7 @@ module.exports = {
     blocked_players: [
         "20934ef9488c465180a78f861586b4cf", // Minikloon (Admin)
         "f025c1c7f55a4ea0b8d93f47d17dfe0f", // Plancke (Admin)
+        "9ca76de8b66f4711a433e86d3f236d49" // Fr0z3n (Admin)
     ],
 
     expertise_kills: [
@@ -50,6 +51,25 @@ module.exports = {
         "6": "legendary",
         "d": "mythic",
         "c": "special"
+    },
+    
+    gem_types: {
+        AMBER: '§6',
+        TOPAZ: '§e',
+        SAPPHIRE: '§b',
+        AMETHYST: '§5',
+        JASPER: '§d',
+        RUBY: '§c',
+        JADE: '§a',
+        OPAL: '§f'
+    },
+
+    gem_tiers: {
+        ROUGH: 'common',
+        FLAWED: 'uncommon',
+        FINE: 'rare',
+        FLAWLESS: 'epic',
+        PERFECT: 'legendary',
     },
 
     special_enchants: [
@@ -142,6 +162,7 @@ module.exports = {
         crit_damage: 50,
         bonus_attack_speed: 0,
         intelligence: 0,
+        ability_damage: 0,
         sea_creature_chance: 20,
         magic_find: 10,
         pet_luck: 0
@@ -159,6 +180,7 @@ module.exports = {
         crit_damage: 0,
         bonus_attack_speed: 0,
         intelligence: 0,
+        ability_damage: 0,
         sea_creature_chance: 0,
         magic_find: 0,
         pet_luck: 0
@@ -534,6 +556,16 @@ module.exports = {
                 }
             ]
         }, {
+            name: 'Oasis Rabbit',
+            id: 'oasis_rabbit',
+            rarity: 'rare',
+            fishingLevel: 10
+        }, {
+            name: 'Oasis Sheep',
+            id: 'oasis_sheep',
+            rarity: 'rare',
+            fishingLevel: 10
+        }, {
             name: 'Monster of the Deep',
             id: 'monster_of_the_deep',
             rarity: 'uncommon',
@@ -653,6 +685,11 @@ module.exports = {
                 }
             ]
         }, {
+            name: 'Water Worm',
+            id: 'water_worm',
+            rarity: 'rare',
+            fishingLevel: 15
+        }, {
             name: 'Sea Leech',
             id: 'sea_leech',
             rarity: 'rare',
@@ -678,6 +715,16 @@ module.exports = {
                     name: 'Enchanted Book (Spiked Hook 6)'
                 }
             ]
+        }, {
+            name: 'Poisoned Water Worm',
+            id: 'poisoned_water_worm',
+            rarity: 'rare',
+            fishingLevel: 17
+        }, {
+            name: 'Flaming Worm',
+            id: 'flaming_worm',
+            rarity: 'rare',
+            fishingLevel: 19
         }, {
             name: 'Guardian Defender',
             id: 'guardian_defender',
@@ -742,6 +789,16 @@ module.exports = {
                     name: 'Enchanted Iron'
                 }
             ]
+        }, {
+            name: 'Lava Blaze',
+            id: 'lava_blaze',
+            rarity: 'epic',
+            fishingLevel: 20
+        }, {
+            name: 'Lava Pigman',
+            id: 'lava_pigman',
+            rarity: 'epic',
+            fishingLevel: 22
         }, {
             name: 'Water Hydra',
             id: 'water_hydra',
@@ -827,6 +884,11 @@ module.exports = {
             requirements: [
                 'Spooky Festival'
             ]
+        }, {
+            name: 'Zombie Miner',
+            id: 'zombie_miner',
+            rarity: 'legendary',
+            fishingLevel: 24
         }, {
             name: 'Yeti',
             id: 'yeti',
